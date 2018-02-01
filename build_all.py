@@ -7,7 +7,7 @@ import shutil
 from subprocess import call
 
 PLATFORMS = [ "windows/amd64", "windows/386", "darwin/amd64", "linux/amd64", "linux/386" ]
-VERSION = "0.6.0"
+VERSION = "0.1.1"
 if __name__ == "__main__":
     if not os.path.exists("build"):
         os.makedirs("build")
