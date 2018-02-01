@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 """Script to build all supported platforms"""
-import sys
 import os
 import shutil
 from subprocess import call
 
-PLATFORMS = [ "windows/amd64", "windows/386", "darwin/amd64", "linux/amd64", "linux/386" ]
+PLATFORMS = ["windows/amd64", "windows/386", "darwin/amd64", "linux/amd64", "linux/386"]
 VERSION = "0.1.1"
+
 if __name__ == "__main__":
     if not os.path.exists("build"):
         os.makedirs("build")

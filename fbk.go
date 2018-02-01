@@ -64,10 +64,8 @@ func main() {
 	if *hasUseruidPtr != "" {
 		// verify by useruid
 		common.GVerify(sha256, *hasUseruidPtr)
-		fmt.Println(sha256)
 	} else {
 		// verify by cardId
-		sha256, _ := common.Sha256File(filepath)
-		fmt.Println(sha256)
+		common.CVerify(sha256, *hasCardIdPtr)
 	}
 }
