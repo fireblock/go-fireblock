@@ -268,6 +268,6 @@ func TestLoadKey(t *testing.T) {
 }
 
 func TestVerify(t *testing.T) {
-	r, _ := Verify([]byte(signatureClear2), [][]byte{[]byte(fireblockIdPub)})
+	r, _ := PGPVerify([]byte(signatureClear2), [][]byte{[]byte(fireblockIdPub)})
 	assert.Equal(t, r, true, "signature is valid")
 }

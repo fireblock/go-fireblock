@@ -13,22 +13,22 @@ import (
 
 var sigWithDataReg = regexp.MustCompile(`-----BEGIN.*\nHash:.*\n\n(.*)\n(-----BEGIN[\s\S]+)`)
 
-// Verify a pgp signature
-func Verify(signatureIncludingData []byte, pubkey [][]byte) (bool, error) {
+// PGPVerify a pgp signature
+func PGPVerify(signatureIncludingData []byte, pubkey [][]byte) (bool, error) {
 	regexRes := sigWithDataReg.FindAllSubmatch(signatureIncludingData, 1)
 	if len(regexRes) == 1 && len(regexRes[0]) == 3 {
-		return VerifyDetached(regexRes[0][1], regexRes[0][2], pubkey)
+		return PGPVerifyDetached(regexRes[0][1], regexRes[0][2], pubkey)
 	}
 	return false, errors.New("couldn't parse the signed data of your input")
 }
 
-// VerifyDetached a pgp signature
-func VerifyDetached(data, signature []byte, pubKey [][]byte) (bool, error) {
-	return VerifyStream(bytes.NewBuffer(data), bytes.NewBuffer(signature), pubKey)
+// PGPVerifyDetached a pgp signature
+func PGPVerifyDetached(data, signature []byte, pubKey [][]byte) (bool, error) {
+	return PGPVerifyStream(bytes.NewBuffer(data), bytes.NewBuffer(signature), pubKey)
 }
 
-// VerifyStream verify a pgp stream
-func VerifyStream(dataReader, signatureReader io.Reader, pubKey [][]byte) (bool, error) {
+// PGPVerifyStream verify a pgp stream
+func PGPVerifyStream(dataReader, signatureReader io.Reader, pubKey [][]byte) (bool, error) {
 	entitylist, err := readPGPKeys(pubKey)
 	if err != nil {
 		return false, err

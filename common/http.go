@@ -88,7 +88,7 @@ func GVerify(hash string, useruid string) {
 			}
 			if ktype == "pgp" {
 				sig := strings.Replace(signature, "\r", "", -1)
-				r, err := Verify([]byte(sig), [][]byte{[]byte(pubkey)})
+				r, err := PGPVerify([]byte(sig), [][]byte{[]byte(pubkey)})
 				if err != nil || !r {
 					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
 					os.Exit(1)
@@ -96,7 +96,7 @@ func GVerify(hash string, useruid string) {
 				fmt.Printf("File matched and verified")
 				os.Exit(0)
 			} else if ktype == "ecdsa" {
-				jwkPubKey, _, err2 := ReadECDSAKeys(pubkey)
+				jwkPubKey, _, err2 := ECDSAReadKeys(pubkey)
 				if err2 != nil {
 					fmt.Printf("Error: file registered but not valid! Invalid ecdsa key\n")
 					os.Exit(1)
@@ -168,7 +168,7 @@ func CVerify(hash string, cardId string) {
 			}
 			if ktype == "pgp" {
 				sig := strings.Replace(signature, "\r", "", -1)
-				r, err := Verify([]byte(sig), [][]byte{[]byte(pubkey)})
+				r, err := PGPVerify([]byte(sig), [][]byte{[]byte(pubkey)})
 				if err != nil || !r {
 					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
 					os.Exit(1)
@@ -176,7 +176,7 @@ func CVerify(hash string, cardId string) {
 				fmt.Printf("File matched and verified")
 				os.Exit(0)
 			} else if ktype == "ecdsa" {
-				jwkPubKey, _, err2 := ReadECDSAKeys(pubkey)
+				jwkPubKey, _, err2 := ECDSAReadKeys(pubkey)
 				if err2 != nil {
 					fmt.Printf("Error: file registered but not valid! Invalid ecdsa key\n")
 					os.Exit(1)

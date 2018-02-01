@@ -23,8 +23,8 @@ type JWKKey struct {
 	Y      string   `json:"y"`
 }
 
-// ReadECDSAKeys read ECDSA Keys
-func ReadECDSAKeys(key string) (*ecdsa.PublicKey, *ecdsa.PrivateKey, error) {
+// ECDSAReadKeys read ECDSA Keys
+func ECDSAReadKeys(key string) (*ecdsa.PublicKey, *ecdsa.PrivateKey, error) {
 	byt := []byte(key)
 
 	var jwk JWKKey
