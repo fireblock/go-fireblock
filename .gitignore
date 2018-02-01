@@ -1,0 +1,10 @@
+*.o
+*.a
+*.so
+*.test
+.vscode/
+vendor/
+dist/
+build/
+fbk
+debug
