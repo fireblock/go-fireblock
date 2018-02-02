@@ -44,7 +44,7 @@ type CardCheckData struct {
 	Linkedin   string `json:"linkedin"`
 }
 
-func GVerify(hash string, useruid string) {
+func GVerify(filename, hash, useruid string, verbose bool) {
 	req := GlobalVerifyReq{hash, useruid}
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
@@ -76,7 +76,7 @@ func GVerify(hash string, useruid string) {
 				fmt.Printf("Error: file registered but not valid! Card not verified\n")
 				os.Exit(1)
 			}
-			pubkey, ktype, err := CheckAllCard(cardCheck.Card, cardId)
+			_, pubkey, ktype, err := CheckAllCard(cardCheck.Card, cardId)
 			if err != nil {
 				fmt.Printf("Error: file registered but not valid! Card not verified\n")
 				os.Exit(1)
@@ -93,8 +93,7 @@ func GVerify(hash string, useruid string) {
 					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
 					os.Exit(1)
 				}
-				fmt.Printf("File matched and verified")
-				os.Exit(0)
+				success(filename, hash, useruid, cardId, true, verbose)
 			} else if ktype == "ecdsa" {
 				jwkPubKey, _, err2 := ECDSAReadKeys(pubkey)
 				if err2 != nil {
@@ -107,8 +106,7 @@ func GVerify(hash string, useruid string) {
 					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
 					os.Exit(1)
 				}
-				fmt.Printf("File matched and verified\n")
-				os.Exit(0)
+				success(filename, hash, useruid, cardId, true, verbose)
 			} else {
 				fmt.Printf("Error: file registered but not valid! Signature not supported\n")
 				os.Exit(1)
@@ -128,7 +126,7 @@ type CardVerifyReq struct {
 	CardId string `json:"cardId"`
 }
 
-func CVerify(hash string, cardId string) {
+func CVerify(filename, hash, cardId string, verbose bool) {
 	req := CardVerifyReq{hash, cardId}
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
@@ -156,7 +154,8 @@ func CVerify(hash string, cardId string) {
 				fmt.Printf("Error: file registered but not valid! Card not verified\n")
 				os.Exit(1)
 			}
-			pubkey, ktype, err := CheckAllCard(cardCheck.Card, cardId)
+			uuid, pubkey, ktype, err := CheckAllCard(cardCheck.Card, cardId)
+			useruid := Keccak256(uuid)
 			if err != nil {
 				fmt.Printf("Error: file registered but not valid! Card not verified\n")
 				os.Exit(1)
@@ -173,8 +172,7 @@ func CVerify(hash string, cardId string) {
 					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
 					os.Exit(1)
 				}
-				fmt.Printf("File matched and verified")
-				os.Exit(0)
+				success(filename, hash, useruid, cardId, true, verbose)
 			} else if ktype == "ecdsa" {
 				jwkPubKey, _, err2 := ECDSAReadKeys(pubkey)
 				if err2 != nil {
@@ -187,8 +185,7 @@ func CVerify(hash string, cardId string) {
 					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
 					os.Exit(1)
 				}
-				fmt.Printf("File matched and verified\n")
-				os.Exit(0)
+				success(filename, hash, useruid, cardId, true, verbose)
 			} else {
 				fmt.Printf("Error: file registered but not valid! Signature not supported\n")
 				os.Exit(1)
@@ -232,4 +229,28 @@ func HTTPKey(keyuid string) (string, error) {
 		return "", errors.NewFBKError(msg, errors.InvalidKey)
 	}
 	return pub, nil
+}
+
+type SuccessResponseData struct {
+	Filename string `json:"filename"`
+	Verified bool   `json:"verified"`
+	Hash     string `json:"hash"`
+	UserId   string `json:"userid"`
+	CardId   string `json:"cardId"`
+}
+
+func success(filename, hash, userid, cardid string, verified, verbose bool) {
+	if verbose {
+		var r SuccessResponseData
+		r.Filename = filename
+		r.Verified = verified
+		r.Hash = hash
+		r.UserId = userid
+		r.CardId = cardid
+		export, _ := json.Marshal(r)
+		fmt.Printf("%s\n", export)
+	} else {
+		fmt.Printf("File matched and verified\n")
+	}
+	os.Exit(0)
 }

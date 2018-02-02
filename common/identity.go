@@ -13,16 +13,16 @@ import (
 
 func extract(txt string) (string, string) {
 	// I am registered on fireblock.io cjFDSTdYZ3pN and use the 0x99090eae43316b2ba65ec52bcd5834a3e07edb2c pgp key (https://fireblock.io)
-	reg, err := regexp.Compile(`I am registered on fireblock.io ([=\w]+) and use the (0x\w+)`)
+	reg, err := regexp.Compile(`I am registered on (Fireblock|fireblock.io) ([=\w]+) and use the (0x\w+)`)
 	if err != nil {
 		return "", ""
 	}
 	k := reg.FindStringSubmatch(txt)
-	if len(k) != 3 {
+	if len(k) != 4 {
 		return "", ""
 	}
-	useruid := k[1]
-	fp := k[2]
+	useruid := k[2]
+	fp := k[3]
 	b64, err2 := base64.StdEncoding.DecodeString(useruid)
 	if err2 != nil {
 		return "", ""
@@ -139,13 +139,21 @@ func CheckLinkedin(url, lkUid, useruid, fingerprint string) bool {
 }
 
 func CheckHTTPS(url, dnsUid, useruid, fingerprint string) bool {
-	reg, err2 := regexp.Compile(`^https://` + dnsUid + `/.fireblock/` + fingerprint + `$`)
+	reg, err2 := regexp.Compile(`^https://` + dnsUid + `/.fireblock/` + fingerprint + `.txt$`)
 	if err2 != nil {
 		return false
 	}
 	resR := reg.MatchString(url)
 	if !resR {
-		return false
+		// check the old version
+		reg, err2 = regexp.Compile(`^https://` + dnsUid + `/.fireblock/` + fingerprint + `$`)
+		if err2 != nil {
+			return false
+		}
+		resR := reg.MatchString(url)
+		if !resR {
+			return false
+		}
 	}
 	proof, err := getUrlContent(url)
 	if err != nil {
