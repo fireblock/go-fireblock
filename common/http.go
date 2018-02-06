@@ -1,213 +1,35 @@
 package common
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
-	"strings"
 
 	"github.com/fireblock/go-fireblock/common/errors"
 )
 
-type GlobalVerifyReq struct {
-	Hash string `json:"hash"`
-	Uuid string `json:"uuid"`
-}
-
-type ErrorRes struct {
-	Id     string `json:"id"`
-	Detail string `json:"detail"`
-}
-
-type JsonRes struct {
+// JSONRes is a common struct used in json response
+type JSONRes struct {
 	Errors []ErrorRes      `json:"errors"`
 	Data   json.RawMessage `json:"data"`
 }
 
-type GVerifyData struct {
-	Id        string          `json:"id"`
-	Verified  bool            `json:"verified"`
-	CardCheck json.RawMessage `json:"cardCheck"`
-	Signature string          `json:"signature"`
-	CardId    string          `json:"cardId"`
+// ErrorRes is a common struct used in json errors
+type ErrorRes struct {
+	ID     string `json:"id"`
+	Detail string `json:"detail"`
 }
 
-type CardCheckData struct {
-	Card       string `json:"card"`
-	CardStatus bool   `json:"cardStatus"`
-	Key        string `json:"key"`
-	Twitter    string `json:"twitter"`
-	Github     string `json:"github"`
-	Https      string `json:"https"`
-	Linkedin   string `json:"linkedin"`
-}
-
-func GVerify(filename, hash, useruid string, verbose bool) {
-	req := GlobalVerifyReq{hash, useruid}
-	buffer := new(bytes.Buffer)
-	json.NewEncoder(buffer).Encode(req)
-	res, _ := http.Post("https://fireblock.io/api/global-verify-proof", "application/json; charset=utf-8", buffer)
-	var response JsonRes
-	json.NewDecoder(res.Body).Decode(&response)
-	// check errors in response
-	if len(response.Errors) > 0 {
-		err := response.Errors[0]
-		fmt.Printf("Error:%s (%s)", err.Id, err.Detail)
-		os.Exit(1)
-	}
-	// no errors
-	var data GVerifyData
-	json.Unmarshal(response.Data, &data)
-	if data.Id == "success" {
-		if !data.Verified && data.CardId == "" {
-			fmt.Printf("Error: file not registered\n")
-			os.Exit(1)
-		} else if !data.Verified {
-			fmt.Printf("Error: file registered but not valid!\n")
-			os.Exit(1)
-		} else if data.Verified {
-			var cardCheck CardCheckData
-			signature := data.Signature
-			cardId := data.CardId
-			json.Unmarshal(data.CardCheck, &cardCheck)
-			if !cardCheck.CardStatus {
-				fmt.Printf("Error: file registered but not valid! Card not verified\n")
-				os.Exit(1)
-			}
-			_, pubkey, ktype, err := CheckAllCard(cardCheck.Card, cardId)
-			if err != nil {
-				fmt.Printf("Error: file registered but not valid! Card not verified\n")
-				os.Exit(1)
-			}
-			// card verified check the signature
-			if len(signature) < 4 || len(signature) > 100000 {
-				fmt.Printf("Error: file registered but not valid! Invalid signature\n")
-				os.Exit(1)
-			}
-			if ktype == "pgp" {
-				sig := strings.Replace(signature, "\r", "", -1)
-				r, err := PGPVerify([]byte(sig), [][]byte{[]byte(pubkey)})
-				if err != nil || !r {
-					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
-					os.Exit(1)
-				}
-				success(filename, hash, useruid, cardId, true, verbose)
-			} else if ktype == "ecdsa" {
-				jwkPubKey, _, err2 := ECDSAReadKeys(pubkey)
-				if err2 != nil {
-					fmt.Printf("Error: file registered but not valid! Invalid ecdsa key\n")
-					os.Exit(1)
-				}
-				message := hash + `||` + cardId
-				r, err := ECDSAVerify(jwkPubKey, message, signature)
-				if err != nil || !r {
-					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
-					os.Exit(1)
-				}
-				success(filename, hash, useruid, cardId, true, verbose)
-			} else {
-				fmt.Printf("Error: file registered but not valid! Signature not supported\n")
-				os.Exit(1)
-			}
-			fmt.Println(err)
-			fmt.Println(pubkey)
-			fmt.Println(ktype)
-			fmt.Printf("%s %s", signature, cardId)
-		}
-	}
-	fmt.Printf("Error: unknown error!\n")
-	os.Exit(66)
-}
-
-type CardVerifyReq struct {
-	Hash   string `json:"hash"`
-	CardId string `json:"cardId"`
-}
-
-func CVerify(filename, hash, cardId string, verbose bool) {
-	req := CardVerifyReq{hash, cardId}
-	buffer := new(bytes.Buffer)
-	json.NewEncoder(buffer).Encode(req)
-	res, _ := http.Post("https://fireblock.io/api/verify-proof", "application/json; charset=utf-8", buffer)
-	var response JsonRes
-	json.NewDecoder(res.Body).Decode(&response)
-	// check errors in response
-	if len(response.Errors) > 0 {
-		err := response.Errors[0]
-		fmt.Printf("Error:%s (%s)", err.Id, err.Detail)
-		os.Exit(1)
-	}
-	// no errors
-	var data GVerifyData
-	json.Unmarshal(response.Data, &data)
-	if data.Id == "success" {
-		if !data.Verified {
-			fmt.Printf("Error: file registered but not valid!\n")
-			os.Exit(1)
-		} else if data.Verified {
-			var cardCheck CardCheckData
-			signature := data.Signature
-			json.Unmarshal(data.CardCheck, &cardCheck)
-			if !cardCheck.CardStatus {
-				fmt.Printf("Error: file registered but not valid! Card not verified\n")
-				os.Exit(1)
-			}
-			uuid, pubkey, ktype, err := CheckAllCard(cardCheck.Card, cardId)
-			useruid := Keccak256(uuid)
-			if err != nil {
-				fmt.Printf("Error: file registered but not valid! Card not verified\n")
-				os.Exit(1)
-			}
-			// card verified check the signature
-			if len(signature) < 4 || len(signature) > 100000 {
-				fmt.Printf("Error: file registered but not valid! Invalid signature\n")
-				os.Exit(1)
-			}
-			if ktype == "pgp" {
-				sig := strings.Replace(signature, "\r", "", -1)
-				r, err := PGPVerify([]byte(sig), [][]byte{[]byte(pubkey)})
-				if err != nil || !r {
-					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
-					os.Exit(1)
-				}
-				success(filename, hash, useruid, cardId, true, verbose)
-			} else if ktype == "ecdsa" {
-				jwkPubKey, _, err2 := ECDSAReadKeys(pubkey)
-				if err2 != nil {
-					fmt.Printf("Error: file registered but not valid! Invalid ecdsa key\n")
-					os.Exit(1)
-				}
-				message := hash + `||` + cardId
-				r, err := ECDSAVerify(jwkPubKey, message, signature)
-				if err != nil || !r {
-					fmt.Printf("Error: file registered but not valid! Invalid signature\n")
-					os.Exit(1)
-				}
-				success(filename, hash, useruid, cardId, true, verbose)
-			} else {
-				fmt.Printf("Error: file registered but not valid! Signature not supported\n")
-				os.Exit(1)
-			}
-			fmt.Println(err)
-			fmt.Println(pubkey)
-			fmt.Println(ktype)
-			fmt.Printf("%s %s", signature, cardId)
-		}
-	}
-	fmt.Printf("Error: unknown error!\n")
-	os.Exit(66)
-}
-
+// KeyResponseData is a common struct used in success response
 type KeyResponseData struct {
 	ID  string        `json:"id"`
 	Key []interface{} `json:"key"`
 }
 
+// HTTPKey API request on fireblock.io for a key
 func HTTPKey(keyuid string) (string, error) {
 	res, _ := http.Get("https://fireblock.io/api/key?keyuid=" + keyuid)
-	var response JsonRes
+	var response JSONRes
 	json.NewDecoder(res.Body).Decode(&response)
 	// check errors in response
 	if len(response.Errors) > 0 {
@@ -229,29 +51,4 @@ func HTTPKey(keyuid string) (string, error) {
 		return "", errors.NewFBKError(msg, errors.InvalidKey)
 	}
 	return pub, nil
-}
-
-// SuccessResponseData success data
-type SuccessResponseData struct {
-	Filename string `json:"filename"`
-	Verified bool   `json:"verified"`
-	Hash     string `json:"hash"`
-	UserID   string `json:"userid"`
-	CardID   string `json:"cardId"`
-}
-
-func success(filename, hash, userid, cardid string, verified, verbose bool) {
-	if verbose {
-		var r SuccessResponseData
-		r.Filename = filename
-		r.Verified = verified
-		r.Hash = hash
-		r.UserID = userid
-		r.CardID = cardid
-		export, _ := json.Marshal(r)
-		fmt.Printf("%s\n", export)
-	} else {
-		fmt.Printf("File matched and verified\n")
-	}
-	os.Exit(0)
 }
