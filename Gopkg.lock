@@ -76,14 +76,14 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "b91bfb9ebec76498946beb6af7c0230c7cc7ba6c"
-  version = "v1.2.0"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/crypto"
   packages = ["cast5","openpgp","openpgp/armor","openpgp/elgamal","openpgp/errors","openpgp/packet","openpgp/s2k","pbkdf2","scrypt"]
-  revision = "3d37316aaa6bd9929127ac9a527abf408178ea7b"
+  revision = "d9133f5469342136e669e85192a26056b587f503"
 
 [[projects]]
   branch = "master"
@@ -130,6 +130,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d7ba4adb9a0274bd13a709446a2a155c953339685fffde03a94642972fe9147c"
+  inputs-digest = "b2d7eb755f2686de0c196c0cdc2a57c99d43a94df9af35a36caafd5b509536aa"
   solver-name = "gps-cdcl"
   solver-version = 1
