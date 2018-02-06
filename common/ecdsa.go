@@ -52,29 +52,29 @@ func ECDSAReadKeys(key string) (*ecdsa.PublicKey, *ecdsa.PrivateKey, error) {
 		k.X = x
 		k.Y = y
 		return k, nil, nil
-	} else {
-		// private key
-		key := new(ecdsa.PrivateKey)
-		key.PublicKey.Curve = elliptic.P256()
-		x, err1 := fromHex(jwk.X)
-		y, err2 := fromHex(jwk.Y)
-		d, err3 := fromHex(jwk.D)
-		if err1 != nil {
-			return nil, nil, err1
-		}
-		if err2 != nil {
-			return nil, nil, err2
-		}
-		if err3 != nil {
-			return nil, nil, err3
-		}
-		key.PublicKey.X = x
-		key.PublicKey.Y = y
-		key.D = d
-		return &key.PublicKey, key, nil
 	}
+	// private key
+	k := new(ecdsa.PrivateKey)
+	k.PublicKey.Curve = elliptic.P256()
+	x, err1 := fromHex(jwk.X)
+	y, err2 := fromHex(jwk.Y)
+	d, err3 := fromHex(jwk.D)
+	if err1 != nil {
+		return nil, nil, err1
+	}
+	if err2 != nil {
+		return nil, nil, err2
+	}
+	if err3 != nil {
+		return nil, nil, err3
+	}
+	k.PublicKey.X = x
+	k.PublicKey.Y = y
+	k.D = d
+	return &k.PublicKey, k, nil
 }
 
+// ECDSASign sign with ECDSA algo
 func ECDSASign(priv *ecdsa.PrivateKey, message string) (string, error) {
 	// compute hash
 	hashed := RawSha256(message)
@@ -96,6 +96,7 @@ func ECDSASign(priv *ecdsa.PrivateKey, message string) (string, error) {
 	return res, nil
 }
 
+// ECDSAVerify verify a signed message
 func ECDSAVerify(pub *ecdsa.PublicKey, message, signature string) (bool, error) {
 	hashed := RawSha256(message)
 	sig, err := base64.RawURLEncoding.DecodeString(signature)
@@ -114,6 +115,7 @@ func ECDSAVerify(pub *ecdsa.PublicKey, message, signature string) (bool, error) 
 	return res, nil
 }
 
+// ECDSAFingerprint compute a fingerprint
 func ECDSAFingerprint(x, y *big.Int) string {
 	const ecdsaFingerprintTemplate = `{"crv":"P-256","kty":"EC","x":"%s","y":"%s"}`
 	xx := base64.RawURLEncoding.EncodeToString(x.Bytes())

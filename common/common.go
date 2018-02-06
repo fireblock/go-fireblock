@@ -32,6 +32,7 @@ import (
 	"github.com/fireblock/go-fireblock/common/errors"
 )
 
+// Sha256File compute the sha256 of a file
 func Sha256File(filepath string) (string, error) {
 	// dat, err := ioutil.ReadFile(filepath)
 	file, err := os.Open(filepath)
@@ -62,6 +63,7 @@ func Sha256(text string) string {
 	return "0x" + hex.EncodeToString(hasher.Sum(nil))
 }
 
+// RawSha256 return sha256 without '0x' prefix
 func RawSha256(text string) []byte {
 	hasher := sha256.New()
 	hasher.Write([]byte(text))

@@ -201,7 +201,7 @@ func CVerify(filename, hash, cardId string, verbose bool) {
 }
 
 type KeyResponseData struct {
-	Id  string        `json:"id"`
+	ID  string        `json:"id"`
 	Key []interface{} `json:"key"`
 }
 
@@ -231,12 +231,13 @@ func HTTPKey(keyuid string) (string, error) {
 	return pub, nil
 }
 
+// SuccessResponseData success data
 type SuccessResponseData struct {
 	Filename string `json:"filename"`
 	Verified bool   `json:"verified"`
 	Hash     string `json:"hash"`
-	UserId   string `json:"userid"`
-	CardId   string `json:"cardId"`
+	UserID   string `json:"userid"`
+	CardID   string `json:"cardId"`
 }
 
 func success(filename, hash, userid, cardid string, verified, verbose bool) {
@@ -245,8 +246,8 @@ func success(filename, hash, userid, cardid string, verified, verbose bool) {
 		r.Filename = filename
 		r.Verified = verified
 		r.Hash = hash
-		r.UserId = userid
-		r.CardId = cardid
+		r.UserID = userid
+		r.CardID = cardid
 		export, _ := json.Marshal(r)
 		fmt.Printf("%s\n", export)
 	} else {

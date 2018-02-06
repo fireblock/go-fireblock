@@ -210,7 +210,7 @@ S/LhAJEZEsxivJBlbeA1
 =XhnQ
 -----END PGP SIGNATURE-----`
 
-const fireblockIdPub = `-----BEGIN PGP PUBLIC KEY BLOCK-----
+const fireblockIDPub = `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFnXM/gBCACx0nazKmx52DIBJtEbNPGCYUvozxbNzz0u3O0TEqDuUwolzlBZ
 ZwjmZ67T2gP16j87i7MNnVeJjQJyMnJ+O9U71dkNiSzAijDrDatK7QYcY/WUWp3C
@@ -268,6 +268,6 @@ func TestLoadKey(t *testing.T) {
 }
 
 func TestVerify(t *testing.T) {
-	r, _ := PGPVerify([]byte(signatureClear2), [][]byte{[]byte(fireblockIdPub)})
+	r, _ := PGPVerify([]byte(signatureClear2), [][]byte{[]byte(fireblockIDPub)})
 	assert.Equal(t, r, true, "signature is valid")
 }

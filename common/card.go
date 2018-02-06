@@ -7,8 +7,9 @@ import (
 	"github.com/fireblock/go-fireblock/common/errors"
 )
 
+// ProviderData provider struct
 type ProviderData struct {
-	Uid      string `json:"uid"`
+	UID      string `json:"uid"`
 	Provider string `json:"provider"`
 	Date     string `json:"date"`
 	Proof    string `json:"proof"`
@@ -23,97 +24,97 @@ func getCardElement(selector string, providers []ProviderData) *ProviderData {
 	return nil
 }
 
+func errorCAC(msg string) (string, string, string, error) {
+	return "", "", "", errors.NewFBKError(msg, errors.InvalidCard)
+}
+
 // CheckAllCard verify sha3(card)==cardId then the proofs and return useruid, pubkey, ktype
-func CheckAllCard(card, cardId string) (string, string, string, error) {
+func CheckAllCard(card, cardID string) (string, string, string, error) {
 	// decode json
 	var providers []ProviderData
 	err := json.Unmarshal([]byte(card), &providers)
 	if err != nil {
 		msg := fmt.Sprintf(`Invalid Json: %s`, card)
-		return "", "", "", errors.NewFBKError(msg, errors.InvalidCard)
+		return errorCAC(msg)
 	}
 	// check useruid
 	fireblockCE := getCardElement("fireblock", providers)
 	if fireblockCE == nil {
-		return "", "", "", errors.NewFBKError(`missing fireblock provider`, errors.InvalidCard)
+		return errorCAC(`missing fireblock provider`)
 	}
-	useruid := fireblockCE.Uid
-	if len(fireblockCE.Uid) < 4 || len(fireblockCE.Uid) > 12 {
-		msg := fmt.Sprintf(`invalid fireblock provider: %s`, fireblockCE.Uid)
-		return "", "", "", errors.NewFBKError(msg, errors.InvalidCard)
+	useruid := fireblockCE.UID
+	if len(fireblockCE.UID) < 4 || len(fireblockCE.UID) > 12 {
+		msg := fmt.Sprintf(`invalid fireblock provider: %s`, fireblockCE.UID)
+		return errorCAC(msg)
 	}
 	// check if it's the expected card
 	cardUID := Keccak256(card)
-	if cardUID != cardId {
-		return "", "", "", errors.NewFBKError(`Fake card detected! Contact Us!`, errors.InvalidCard)
+	if cardUID != cardID {
+		return errorCAC(`Fake card detected! Contact Us!`)
 	}
 	pgpCE := getCardElement("pgp", providers)
 	ecdsaCE := getCardElement("ecdsa", providers)
 	ethCE := getCardElement("eth", providers)
 	count := 0
 	if pgpCE != nil {
-		count += 1
+		count++
 	}
 	if ecdsaCE != nil {
-		count += 1
+		count++
 	}
 	if ethCE != nil {
-		count += 1
+		count++
 	}
 	var fingerprint string
 	var keyuid string
 	var ktype string
 	if count != 1 {
-		return "", "", "", errors.NewFBKError(`No key in card!`, errors.InvalidCard)
+		return errorCAC(`No key in card!`)
 	} else if pgpCE != nil {
-		fingerprint = pgpCE.Uid
-		keyuid = PGPToB32(pgpCE.Uid)
+		fingerprint = pgpCE.UID
+		keyuid = PGPToB32(pgpCE.UID)
 		ktype = "pgp"
 	} else if ecdsaCE != nil {
-		fingerprint = ecdsaCE.Uid
-		keyuid = ECDSAToB32(ecdsaCE.Uid)
+		fingerprint = ecdsaCE.UID
+		keyuid = ECDSAToB32(ecdsaCE.UID)
 		ktype = "ecdsa"
 	} else if ethCE != nil {
-		fingerprint = ethCE.Uid
-		keyuid = ethCE.Uid
+		fingerprint = ethCE.UID
+		keyuid = ethCE.UID
 		ktype = "eth"
 	} else {
-		return "", "", "", errors.NewFBKError(`Multiple keys in card!`, errors.InvalidCard)
+		return errorCAC(`Multiple keys in card!`)
 	}
 	if len(keyuid) != 66 {
 		msg := fmt.Sprintf(`Invalid keyuid %s!`, keyuid)
-		return "", "", "", errors.NewFBKError(msg, errors.InvalidCard)
+		return errorCAC(msg)
 	}
 	pubkey, errk := HTTPKey(keyuid)
 	if errk != nil {
-		return "", "", "", errors.NewFBKError(`No public key found!`, errors.InvalidCard)
+		return errorCAC(`No public key found!`)
 	}
 	// check twitter
-	twitterCE := getCardElement("twitter", providers)
-	if twitterCE != nil {
-		if !CheckTwitter(twitterCE.Proof, twitterCE.Uid, useruid, fingerprint) {
-			return "", "", "", errors.NewFBKError(`Invalid twitter!`, errors.InvalidCard)
+	if twitterCE := getCardElement("twitter", providers); twitterCE != nil {
+		if !CheckTwitter(twitterCE.Proof, twitterCE.UID, useruid, fingerprint) {
+			return errorCAC(`Invalid twitter!`)
 		}
 	}
 	// check github
-	githubCE := getCardElement("github", providers)
-	if githubCE != nil {
-		if !CheckGithub(githubCE.Proof, githubCE.Uid, useruid, fingerprint) {
-			return "", "", "", errors.NewFBKError(`Invalid github!`, errors.InvalidCard)
+	if githubCE := getCardElement("github", providers); githubCE != nil {
+		if !CheckGithub(githubCE.Proof, githubCE.UID, useruid, fingerprint) {
+			return errorCAC(`Invalid github!`)
 		}
 	}
 	// check HTTPS
-	httpsCE := getCardElement("https", providers)
-	if httpsCE != nil {
-		if !CheckHTTPS(httpsCE.Proof, httpsCE.Uid, useruid, fingerprint) {
-			return "", "", "", errors.NewFBKError(`Invalid website!`, errors.InvalidCard)
+	if httpsCE := getCardElement("https", providers); httpsCE != nil {
+		if !CheckHTTPS(httpsCE.Proof, httpsCE.UID, useruid, fingerprint) {
+			return errorCAC(`Invalid website!`)
 		}
 	}
 	// check Linkedin
-	linkedinCE := getCardElement("linkedin", providers)
-	if linkedinCE != nil {
-		if !CheckLinkedin(linkedinCE.Proof, linkedinCE.Uid, useruid, fingerprint) {
-			return "", "", "", errors.NewFBKError(`Invalid linkedin`, errors.InvalidCard)
+	if linkedinCE := getCardElement("linkedin", providers); linkedinCE != nil {
+		if !CheckLinkedin(linkedinCE.Proof, linkedinCE.UID, useruid, fingerprint) {
+			return errorCAC(`Invalid linkedin`)
 		}
 	}
 	return useruid, pubkey, ktype, nil

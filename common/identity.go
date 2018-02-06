@@ -33,7 +33,7 @@ func extract(txt string) (string, string) {
 	return string(b64[:]), fp
 }
 
-func getUrlContent(url string) (string, error) {
+func getURLContent(url string) (string, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		msg := fmt.Sprintf("invalid url: %s", url)
@@ -45,7 +45,8 @@ func getUrlContent(url string) (string, error) {
 	return s, nil
 }
 
-func CheckTwitter(url, twUid, useruid, fingerprint string) bool {
+// CheckTwitter check twitter proof
+func CheckTwitter(url, twUID, useruid, fingerprint string) bool {
 	reg, err := regexp.Compile(`https://twitter.com/(\w{1,15})/status/`)
 	if err != nil {
 		return false
@@ -54,10 +55,10 @@ func CheckTwitter(url, twUid, useruid, fingerprint string) bool {
 		return false
 	}
 	k := reg.FindStringSubmatch(url)
-	if k[1] != twUid {
+	if k[1] != twUID {
 		return false
 	}
-	proof, err2 := getUrlContent(url)
+	proof, err2 := getURLContent(url)
 	if err2 != nil {
 		return false
 	}
@@ -68,27 +69,30 @@ func CheckTwitter(url, twUid, useruid, fingerprint string) bool {
 	return true
 }
 
+// OwnerData login
 type OwnerData struct {
 	Login string `json:"login"`
 }
 
+// GistData Gist information
 type GistData struct {
 	Owner  OwnerData       `json:"owner"`
 	ForkOf json.RawMessage `json:"fork_of"`
 }
 
-func CheckGithub(url, ghUid, useruid, fingerprint string) bool {
+// CheckGithub Check github proof
+func CheckGithub(url, ghUID, useruid, fingerprint string) bool {
 	reg, err := regexp.Compile(`^https://gist.github.com/(\w{1,15})/(\w+)`)
 	if err != nil {
 		return false
 	}
 	k := reg.FindStringSubmatch(url)
-	if k[1] != ghUid {
+	if k[1] != ghUID {
 		return false
 	}
 	// gist
-	gistUrl := `https://api.github.com/gists/` + k[2]
-	gistInfo, err3 := getUrlContent(gistUrl)
+	gistURL := `https://api.github.com/gists/` + k[2]
+	gistInfo, err3 := getURLContent(gistURL)
 	if err3 != nil {
 		return false
 	}
@@ -98,7 +102,7 @@ func CheckGithub(url, ghUid, useruid, fingerprint string) bool {
 	if err5 != nil {
 		return false
 	}
-	if data.Owner.Login != ghUid {
+	if data.Owner.Login != ghUID {
 		return false
 	}
 	if len(data.ForkOf) > 0 {
@@ -106,7 +110,7 @@ func CheckGithub(url, ghUid, useruid, fingerprint string) bool {
 	}
 	// content
 	newURL := `https://gist.githubusercontent.com/` + k[1] + `/` + k[2] + `/raw`
-	proof, err4 := getUrlContent(newURL)
+	proof, err4 := getURLContent(newURL)
 	if err4 != nil {
 		return false
 	}
@@ -117,12 +121,13 @@ func CheckGithub(url, ghUid, useruid, fingerprint string) bool {
 	return true
 }
 
-func CheckLinkedin(url, lkUid, useruid, fingerprint string) bool {
-	proof, err := getUrlContent(url)
+// CheckLinkedin check a linkedin proof
+func CheckLinkedin(url, lkUID, useruid, fingerprint string) bool {
+	proof, err := getURLContent(url)
 	if err != nil {
 		return false
 	}
-	reg, err2 := regexp.Compile(`href="https://www.linkedin.com/in/` + lkUid + `"`)
+	reg, err2 := regexp.Compile(`href="https://www.linkedin.com/in/` + lkUID + `"`)
 	if err2 != nil {
 		return false
 	}
@@ -138,15 +143,16 @@ func CheckLinkedin(url, lkUid, useruid, fingerprint string) bool {
 	return true
 }
 
-func CheckHTTPS(url, dnsUid, useruid, fingerprint string) bool {
-	reg, err2 := regexp.Compile(`^https://` + dnsUid + `/.fireblock/` + fingerprint + `.txt$`)
+// CheckHTTPS check website with a https proof
+func CheckHTTPS(url, dnsUID, useruid, fingerprint string) bool {
+	reg, err2 := regexp.Compile(`^https://` + dnsUID + `/.fireblock/` + fingerprint + `.txt$`)
 	if err2 != nil {
 		return false
 	}
 	resR := reg.MatchString(url)
 	if !resR {
 		// check the old version
-		reg, err2 = regexp.Compile(`^https://` + dnsUid + `/.fireblock/` + fingerprint + `$`)
+		reg, err2 = regexp.Compile(`^https://` + dnsUID + `/.fireblock/` + fingerprint + `$`)
 		if err2 != nil {
 			return false
 		}
@@ -155,7 +161,7 @@ func CheckHTTPS(url, dnsUid, useruid, fingerprint string) bool {
 			return false
 		}
 	}
-	proof, err := getUrlContent(url)
+	proof, err := getURLContent(url)
 	if err != nil {
 		return false
 	}

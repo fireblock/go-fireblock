@@ -7,7 +7,7 @@ import (
 )
 
 func TestGetUrlContent1(t *testing.T) {
-	res, err := getUrlContent("https://twitter.com/fireblock_io/status/949233097060634624")
+	res, err := getURLContent("https://twitter.com/fireblock_io/status/949233097060634624")
 	assert.Equal(t, err, nil, "")
 	assert.NotEqual(t, res, "", "not empty string")
 }
