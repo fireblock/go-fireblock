@@ -1,6 +1,11 @@
 FIO
 ===
 
+[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fireblock/Lobby)
+
+[![Go Report Card](https://goreportcard.com/badge/github.com/fireblock/go-fireblock)](https://goreportcard.com/report/github.com/fireblock/go-fireblock)
+
+
 Check integrity and ownership of a file registered on [Fireblock.io](https://fireblock.io)
 
 Check by user id:
