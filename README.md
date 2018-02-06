@@ -1,7 +1,7 @@
 FIO
 ===
 
-[![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/fireblock/Lobby)
+[![Gitter chat](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/fireblock/Lobby)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/fireblock/go-fireblock)](https://goreportcard.com/report/github.com/fireblock/go-fireblock)
 
