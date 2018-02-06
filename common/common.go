@@ -87,7 +87,7 @@ func Sha1(text string) string {
 // PGPToB32 convert PGP key to bytes32
 func PGPToB32(pgp string) string {
 	if strings.Index(pgp, "0x") == 0 {
-		r := pgp[2:len(pgp)]
+		r := pgp[2:]
 		return "0x100000000000000000000000" + r
 	}
 	return "0x100000000000000000000000" + pgp
@@ -95,13 +95,13 @@ func PGPToB32(pgp string) string {
 
 // B32ToPGP convert bytes32 to pgp
 func B32ToPGP(b32 string) string {
-	return "0x" + b32[26:len(b32)]
+	return "0x" + b32[26:]
 }
 
 // ECDSAToB32 convert ecdsa to b32
 func ECDSAToB32(ecdsa string) string {
 	if strings.Index(ecdsa, "0x") == 0 {
-		r := ecdsa[2:len(ecdsa)]
+		r := ecdsa[2:]
 		return "0x200000000000000000000000" + r
 	}
 	return "0x200000000000000000000000" + ecdsa
@@ -109,7 +109,7 @@ func ECDSAToB32(ecdsa string) string {
 
 // B32ToECDSA convert B32 to ECDSA
 func B32ToECDSA(b32 string) string {
-	return "0x" + b32[26:len(b32)]
+	return "0x" + b32[26:]
 }
 
 // B32Type return type of key
