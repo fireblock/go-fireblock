@@ -6,7 +6,6 @@ import (
 	"path"
 
 	"github.com/fireblock/go-fireblock/common"
-	"github.com/fireblock/go-fireblock/fio"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -39,10 +38,10 @@ func main() {
 		}
 		if *userID != "0x0" {
 			// verify by useruid
-			fio.GVerify(filename, sha256, *userID, *json)
+			GVerify(filename, sha256, *userID, *json)
 		} else {
 			// verify by cardId
-			fio.CVerify(filename, sha256, *cardID, *json)
+			CVerify(filename, sha256, *cardID, *json)
 		}
 	}
 }

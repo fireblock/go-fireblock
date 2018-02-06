@@ -6,5 +6,6 @@
 vendor/
 dist/
 build/
+contracts/
 fbk
 debug

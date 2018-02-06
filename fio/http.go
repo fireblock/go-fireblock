@@ -1,4 +1,4 @@
-package fio
+package main
 
 import (
 	"bytes"
