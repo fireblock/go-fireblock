@@ -5,7 +5,7 @@ import (
 	"os"
 	"path"
 
-	fireblock "github.com/fireblock/go-fireblock/"
+	fireblock "github.com/fireblock/go-fireblock"
 	"github.com/fireblock/go-fireblock/common"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
