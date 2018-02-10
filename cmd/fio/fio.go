@@ -5,15 +5,9 @@ import (
 	"os"
 	"path"
 
+	fireblock "github.com/fireblock/go-fireblock/"
 	"github.com/fireblock/go-fireblock/common"
 	"gopkg.in/alecthomas/kingpin.v2"
-)
-
-const (
-	// Version - fbk version
-	Version = "0.1.2"
-	// Author fireblock
-	Author = "Laurent Mallet laurent.mallet at gmail dot com"
 )
 
 func main() {
@@ -22,7 +16,7 @@ func main() {
 	json := kingpin.Flag("json", "Output in JSON format").Short('j').Bool()
 	file := kingpin.Arg("file", "File to retrieve.").Required().ExistingFile()
 
-	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(Version).Author(Author)
+	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(fireblock.Version).Author(fireblock.Author)
 	kingpin.Parse()
 	if file != nil {
 		if *cardID == "0x0" && *userID == "0x0" {
