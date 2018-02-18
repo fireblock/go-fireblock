@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/fireblock/go-fireblock/common"
 )
@@ -131,9 +130,9 @@ func GVerify(filename, hash, useruid string, verbose bool) {
 			if len(signature) < 4 || len(signature) > 100000 {
 				fioError("File registered but signature not verified", "", filename, hash, useruid, cardID, verbose)
 			}
+			message := hash + `||` + cardID
 			if ktype == "pgp" {
-				sig := strings.Replace(signature, "\r", "", -1)
-				r, err := common.PGPVerify([]byte(sig), [][]byte{[]byte(pubkey)})
+				r, err := common.PGPVerify(signature, message, pubkey)
 				if err != nil || !r {
 					fioError("File registered but PGP signature not verified", "", filename, hash, useruid, cardID, verbose)
 				}
@@ -143,7 +142,6 @@ func GVerify(filename, hash, useruid string, verbose bool) {
 				if err2 != nil {
 					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)
 				}
-				message := hash + `||` + cardID
 				r, err := common.ECDSAVerify(jwkPubKey, message, signature)
 				if err != nil || !r {
 					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)
@@ -192,9 +190,9 @@ func CVerify(filename, hash, cardID string, verbose bool) {
 			if len(signature) < 4 || len(signature) > 100000 {
 				fioError("File registered but signature not verified", "", filename, hash, useruid, cardID, verbose)
 			}
+			message := hash + `||` + cardID
 			if ktype == "pgp" {
-				sig := strings.Replace(signature, "\r", "", -1)
-				r, err := common.PGPVerify([]byte(sig), [][]byte{[]byte(pubkey)})
+				r, err := common.PGPVerify(signature, message, pubkey)
 				if err != nil || !r {
 					fioError("File registered but PGP signature not verified", "", filename, hash, useruid, cardID, verbose)
 				}
@@ -204,7 +202,6 @@ func CVerify(filename, hash, cardID string, verbose bool) {
 				if err2 != nil {
 					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)
 				}
-				message := hash + `||` + cardID
 				r, err := common.ECDSAVerify(jwkPubKey, message, signature)
 				if err != nil || !r {
 					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)

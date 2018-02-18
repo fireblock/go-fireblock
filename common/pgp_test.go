@@ -255,19 +255,10 @@ tSVc+uxzgAD07B9AxMMT/uN2RNwmCXwnKuOWKMOMwsU53r87QQ0V49Gjqnbd1A==
 =YLYk
 -----END PGP SIGNATURE-----`
 
-func TestLoadKey(t *testing.T) {
-	bFireblockPubKey := [][]byte{[]byte(fireblockPubKey)}
-	_, error1 := readPGPKeys(bFireblockPubKey)
-	assert.Equal(t, error1, nil, "no error when loading a PGP PubKey")
-	bFireblockPrivKey := [][]byte{[]byte(fireblockPrivKey)}
-	_, error2 := readPGPKeys(bFireblockPrivKey)
-	assert.Equal(t, error2, nil, "no error when loading a PGP PrivKey")
-	bSignatureClear := [][]byte{[]byte(signatureClear)}
-	_, error3 := readPGPKeys(bSignatureClear)
-	assert.NotEqual(t, error3, nil, "error when loading a signature")
-}
-
-func TestVerify(t *testing.T) {
-	r, _ := PGPVerify([]byte(signatureClear2), [][]byte{[]byte(fireblockIDPub)})
-	assert.Equal(t, r, true, "signature is valid")
+func TestClearSign(t *testing.T) {
+	msg := "un message a signer doit faire une longueur"
+	sig, err := PGPSign(msg, fireblockPrivKey, "fireblock")
+	assert.Equal(t, err, nil, "no error when signing")
+	res, _ := PGPVerify(sig, msg, fireblockPubKey)
+	assert.Equal(t, res, true, "verify matched")
 }

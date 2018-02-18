@@ -8,7 +8,8 @@ const InvalidKey = 301
 const InvalidCard = 302
 const InvalidProof = 303
 const InvalidSignature = 304
-const InvalidFile = 305
+const InvalidPassphrase = 305
+const InvalidFile = 310
 const InvalidJson = 320
 const InvalidEncoding = 321
 

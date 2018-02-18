@@ -2,76 +2,107 @@ package common
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"io"
-	"regexp"
 
+	ferrors "github.com/fireblock/go-fireblock/common/errors"
 	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
+	"golang.org/x/crypto/openpgp/clearsign"
 	"golang.org/x/crypto/openpgp/packet"
 )
 
-var sigWithDataReg = regexp.MustCompile(`-----BEGIN.*\nHash:.*\n\n(.*)\n(-----BEGIN[\s\S]+)`)
-
-// PGPVerify a pgp signature
-func PGPVerify(signatureIncludingData []byte, pubkey [][]byte) (bool, error) {
-	regexRes := sigWithDataReg.FindAllSubmatch(signatureIncludingData, 1)
-	if len(regexRes) == 1 && len(regexRes[0]) == 3 {
-		return PGPVerifyDetached(regexRes[0][1], regexRes[0][2], pubkey)
+// PGPSign clearsign a message
+func PGPSign(message, privkey, passphrase string) (string, error) {
+	// load private key
+	entity, err := loadPrivateKey(privkey, passphrase)
+	if err != nil {
+		return "", err
 	}
-	return false, errors.New("couldn't parse the signed data of your input")
+	var buf bytes.Buffer
+	plaintext, err := clearsign.Encode(&buf, entity.PrivateKey, nil)
+	if err != nil {
+		return "", ferrors.NewFBKError("cannot create a signature", ferrors.InvalidSignature)
+	}
+	plaintext.Write([]byte(message))
+	plaintext.Close()
+	return buf.String(), nil
 }
 
-// PGPVerifyDetached a pgp signature
-func PGPVerifyDetached(data, signature []byte, pubKey [][]byte) (bool, error) {
-	return PGPVerifyStream(bytes.NewBuffer(data), bytes.NewBuffer(signature), pubKey)
-}
-
-// PGPVerifyStream verify a pgp stream
-func PGPVerifyStream(dataReader, signatureReader io.Reader, pubKey [][]byte) (bool, error) {
-	entitylist, err := readPGPKeys(pubKey)
+// PGPVerify a clearsign message
+func PGPVerify(signature, message, pubkey string) (bool, error) {
+	entity, err := loadPublicKey(pubkey)
 	if err != nil {
 		return false, err
 	}
+	// load clearsigned message and extract signature
+	bck, remain := clearsign.Decode([]byte(signature))
+	if len(remain) != 0 {
+		msg := fmt.Sprintf("Not the signature attended: %s", signature)
+		return false, ferrors.NewFBKError(msg, ferrors.InvalidSignature)
+	}
 
-	block, err := armor.Decode(signatureReader)
+	if bck.ArmoredSignature == nil {
+		return false, ferrors.NewFBKError("No signature found", ferrors.InvalidSignature)
+	}
 
+	block := bck.ArmoredSignature
 	if block.Type != openpgp.SignatureType {
-		return false, errors.New("Invalid signature")
+		return false, ferrors.NewFBKError("No armored part in signature", ferrors.InvalidSignature)
 	}
 
 	reader := packet.NewReader(block.Body)
 	pkt, err := reader.Next()
 	if err != nil {
-		return false, err
+		return false, ferrors.NewFBKError("Cannot read armored part", ferrors.InvalidSignature)
 	}
-
 	sig, ok := pkt.(*packet.Signature)
 	if !ok {
-		return false, errors.New("Invalid signature")
+		return false, ferrors.NewFBKError("Cannot read armored part", ferrors.InvalidSignature)
 	}
 	hash := sig.Hash.New()
-	_, err = io.Copy(hash, dataReader)
+	_, err = io.Copy(hash, bytes.NewBufferString(message))
 	if err != nil {
-		return false, err
+		return false, ferrors.NewFBKError("Cannot compute hash in armored part", ferrors.InvalidSignature)
 	}
-	err = entitylist[0].PrimaryKey.VerifySignature(hash, sig)
+	err = entity.PrimaryKey.VerifySignature(hash, sig)
 	if err != nil {
-		return false, err
+		return false, ferrors.NewFBKError("Signature doesn't match", ferrors.InvalidSignature)
 	}
 	return true, nil
 }
 
-// ReadKeys read a pgp key (public or private)
-func readPGPKeys(keys [][]byte) (el openpgp.EntityList, err error) {
-	for _, key := range keys {
-		entitylist, err := openpgp.ReadArmoredKeyRing(bytes.NewBuffer(key))
+func loadPublicKey(pubkey string) (*openpgp.Entity, error) {
+	entitylist, err := openpgp.ReadArmoredKeyRing(bytes.NewBufferString(pubkey))
+	if err != nil {
+		return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidKey)
+	}
+	// use only the first key
+	entity := entitylist[0]
+	return entity, nil
+}
+
+func loadPrivateKey(privkey, passphrase string) (*openpgp.Entity, error) {
+	entitylist, err := openpgp.ReadArmoredKeyRing(bytes.NewBufferString(privkey))
+	if err != nil {
+		return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidKey)
+	}
+	// use only the first key
+	entity := entitylist[0]
+	// check if the private key is encrypted
+	if entity.PrivateKey != nil && entity.PrivateKey.Encrypted {
+		err := entity.PrivateKey.Decrypt([]byte(passphrase))
 		if err != nil {
-			return nil, err
-		}
-		for _, e := range entitylist {
-			el = append(el, e)
+			return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidPassphrase)
 		}
 	}
-	return el, nil
+	// decrypt subkeys
+	for _, subkey := range entity.Subkeys {
+		if subkey.PrivateKey != nil && subkey.PrivateKey.Encrypted {
+			err := subkey.PrivateKey.Decrypt([]byte(passphrase))
+			if err != nil {
+				return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidPassphrase)
+			}
+		}
+	}
+	return entity, nil
 }
