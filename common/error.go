@@ -1,4 +1,4 @@
-package errors
+package common
 
 const None = 100
 const InvalidType = 200

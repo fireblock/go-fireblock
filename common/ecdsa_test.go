@@ -4,7 +4,6 @@ import (
 	"crypto/elliptic"
 	"testing"
 
-	"github.com/fireblock/go-fireblock/common/errors"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,8 +56,8 @@ const JwkKeyuidKey2 = "0x200000000000000000000000c4db45d29987aead9b6fee307f5142a
 func TestReadECDSAKeys1(t *testing.T) {
 	_, _, err := ECDSAReadKeys(jwkInvalid)
 	if err != nil {
-		if err, ok := err.(*errors.FBKError); ok {
-			assert.Equal(t, err.Type(), errors.InvalidJson, "")
+		if err, ok := err.(*FBKError); ok {
+			assert.Equal(t, err.Type(), InvalidJson, "")
 			return
 		}
 	}

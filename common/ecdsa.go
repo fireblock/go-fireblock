@@ -8,8 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
-
-	"github.com/fireblock/go-fireblock/common/errors"
 )
 
 // JWKKey a key
@@ -29,12 +27,12 @@ func ECDSAReadKeys(key string) (*ecdsa.PublicKey, *ecdsa.PrivateKey, error) {
 
 	var jwk JWKKey
 	if err := json.Unmarshal(byt, &jwk); err != nil {
-		e := errors.NewFBKError(err.Error(), errors.InvalidJson)
+		e := NewFBKError(err.Error(), InvalidJson)
 		return nil, nil, e
 	}
 	if jwk.Crv != "P-256" {
 		msg := fmt.Sprintf(`key format not supported %s`, jwk.Crv)
-		e := errors.NewFBKError(msg, errors.InvalidKey)
+		e := NewFBKError(msg, InvalidKey)
 		return nil, nil, e
 	}
 	if jwk.D == "" {
@@ -80,7 +78,7 @@ func ECDSASign(priv *ecdsa.PrivateKey, message string) (string, error) {
 	hashed := RawSha256(message)
 	r, s, err := ecdsa.Sign(rand.Reader, priv, []byte(hashed))
 	if err != nil {
-		e := errors.NewFBKError("cannot sign", errors.InvalidEncoding)
+		e := NewFBKError("cannot sign", InvalidEncoding)
 		return "", e
 	}
 	// create r,s signature into a 64 []byte
@@ -102,11 +100,11 @@ func ECDSAVerify(pub *ecdsa.PublicKey, message, signature string) (bool, error) 
 	sig, err := base64.RawURLEncoding.DecodeString(signature)
 	if err != nil {
 		msg := fmt.Sprintf(`base64.RawURLEncoding.DecodeString error %s`, signature)
-		e := errors.NewFBKError(msg, errors.InvalidEncoding)
+		e := NewFBKError(msg, InvalidEncoding)
 		return false, e
 	}
 	if len(sig) != 64 {
-		e := errors.NewFBKError(`base64.RawURLEncoding.DecodeString length must be 64`, errors.InvalidEncoding)
+		e := NewFBKError(`base64.RawURLEncoding.DecodeString length must be 64`, InvalidEncoding)
 		return false, e
 	}
 	r := new(big.Int).SetBytes(sig[:32])
@@ -128,7 +126,7 @@ func fromHex(s string) (*big.Int, error) {
 	l, err := base64.RawURLEncoding.DecodeString(s)
 	if err != nil {
 		msg := fmt.Sprintf(`base64.RawURLEncoding.DecodeString error %s`, s)
-		e := errors.NewFBKError(msg, errors.InvalidEncoding)
+		e := NewFBKError(msg, InvalidEncoding)
 		return nil, e
 	}
 	r := new(big.Int).SetBytes(l)

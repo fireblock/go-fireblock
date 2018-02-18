@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	ferrors "github.com/fireblock/go-fireblock/common/errors"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/clearsign"
 	"golang.org/x/crypto/openpgp/packet"
@@ -21,7 +20,7 @@ func PGPSign(message, privkey, passphrase string) (string, error) {
 	var buf bytes.Buffer
 	plaintext, err := clearsign.Encode(&buf, entity.PrivateKey, nil)
 	if err != nil {
-		return "", ferrors.NewFBKError("cannot create a signature", ferrors.InvalidSignature)
+		return "", NewFBKError("cannot create a signature", InvalidSignature)
 	}
 	plaintext.Write([]byte(message))
 	plaintext.Close()
@@ -38,35 +37,35 @@ func PGPVerify(signature, message, pubkey string) (bool, error) {
 	bck, remain := clearsign.Decode([]byte(signature))
 	if len(remain) != 0 {
 		msg := fmt.Sprintf("Not the signature attended: %s", signature)
-		return false, ferrors.NewFBKError(msg, ferrors.InvalidSignature)
+		return false, NewFBKError(msg, InvalidSignature)
 	}
 
 	if bck.ArmoredSignature == nil {
-		return false, ferrors.NewFBKError("No signature found", ferrors.InvalidSignature)
+		return false, NewFBKError("No signature found", InvalidSignature)
 	}
 
 	block := bck.ArmoredSignature
 	if block.Type != openpgp.SignatureType {
-		return false, ferrors.NewFBKError("No armored part in signature", ferrors.InvalidSignature)
+		return false, NewFBKError("No armored part in signature", InvalidSignature)
 	}
 
 	reader := packet.NewReader(block.Body)
 	pkt, err := reader.Next()
 	if err != nil {
-		return false, ferrors.NewFBKError("Cannot read armored part", ferrors.InvalidSignature)
+		return false, NewFBKError("Cannot read armored part", InvalidSignature)
 	}
 	sig, ok := pkt.(*packet.Signature)
 	if !ok {
-		return false, ferrors.NewFBKError("Cannot read armored part", ferrors.InvalidSignature)
+		return false, NewFBKError("Cannot read armored part", InvalidSignature)
 	}
 	hash := sig.Hash.New()
 	_, err = io.Copy(hash, bytes.NewBufferString(message))
 	if err != nil {
-		return false, ferrors.NewFBKError("Cannot compute hash in armored part", ferrors.InvalidSignature)
+		return false, NewFBKError("Cannot compute hash in armored part", InvalidSignature)
 	}
 	err = entity.PrimaryKey.VerifySignature(hash, sig)
 	if err != nil {
-		return false, ferrors.NewFBKError("Signature doesn't match", ferrors.InvalidSignature)
+		return false, NewFBKError("Signature doesn't match", InvalidSignature)
 	}
 	return true, nil
 }
@@ -74,7 +73,7 @@ func PGPVerify(signature, message, pubkey string) (bool, error) {
 func loadPublicKey(pubkey string) (*openpgp.Entity, error) {
 	entitylist, err := openpgp.ReadArmoredKeyRing(bytes.NewBufferString(pubkey))
 	if err != nil {
-		return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidKey)
+		return nil, NewFBKError(err.Error(), InvalidKey)
 	}
 	// use only the first key
 	entity := entitylist[0]
@@ -84,7 +83,7 @@ func loadPublicKey(pubkey string) (*openpgp.Entity, error) {
 func loadPrivateKey(privkey, passphrase string) (*openpgp.Entity, error) {
 	entitylist, err := openpgp.ReadArmoredKeyRing(bytes.NewBufferString(privkey))
 	if err != nil {
-		return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidKey)
+		return nil, NewFBKError(err.Error(), InvalidKey)
 	}
 	// use only the first key
 	entity := entitylist[0]
@@ -92,7 +91,7 @@ func loadPrivateKey(privkey, passphrase string) (*openpgp.Entity, error) {
 	if entity.PrivateKey != nil && entity.PrivateKey.Encrypted {
 		err := entity.PrivateKey.Decrypt([]byte(passphrase))
 		if err != nil {
-			return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidPassphrase)
+			return nil, NewFBKError(err.Error(), InvalidPassphrase)
 		}
 	}
 	// decrypt subkeys
@@ -100,7 +99,7 @@ func loadPrivateKey(privkey, passphrase string) (*openpgp.Entity, error) {
 		if subkey.PrivateKey != nil && subkey.PrivateKey.Encrypted {
 			err := subkey.PrivateKey.Decrypt([]byte(passphrase))
 			if err != nil {
-				return nil, ferrors.NewFBKError(err.Error(), ferrors.InvalidPassphrase)
+				return nil, NewFBKError(err.Error(), InvalidPassphrase)
 			}
 		}
 	}

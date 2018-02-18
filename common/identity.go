@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-
-	"github.com/fireblock/go-fireblock/common/errors"
 )
 
 func extract(txt string) (string, string) {
@@ -37,7 +35,7 @@ func getURLContent(url string) (string, error) {
 	res, err := http.Get(url)
 	if err != nil {
 		msg := fmt.Sprintf("invalid url: %s", url)
-		return "", errors.NewFBKError(msg, errors.NetworkError)
+		return "", NewFBKError(msg, NetworkError)
 	}
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(res.Body)

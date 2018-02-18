@@ -29,7 +29,6 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/crypto/sha3"
-	"github.com/fireblock/go-fireblock/common/errors"
 )
 
 // Sha256File compute the sha256 of a file
@@ -38,7 +37,7 @@ func Sha256File(filepath string) (string, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
 		msg := fmt.Sprintf(`Cannot read the %s file`, filepath)
-		e := errors.NewFBKError(msg, errors.InvalidFile)
+		e := NewFBKError(msg, InvalidFile)
 		return "", e
 	}
 	defer file.Close()

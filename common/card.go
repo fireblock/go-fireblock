@@ -3,8 +3,6 @@ package common
 import (
 	"encoding/json"
 	"fmt"
-
-	"github.com/fireblock/go-fireblock/common/errors"
 )
 
 // ProviderData provider struct
@@ -25,7 +23,7 @@ func getCardElement(selector string, providers []ProviderData) *ProviderData {
 }
 
 func errorCAC(msg string) (string, string, string, error) {
-	return "", "", "", errors.NewFBKError(msg, errors.InvalidCard)
+	return "", "", "", NewFBKError(msg, InvalidCard)
 }
 
 // CheckAllCard verify sha3(card)==cardId then the proofs and return useruid, pubkey, ktype

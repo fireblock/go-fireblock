@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
-	"github.com/fireblock/go-fireblock/common/errors"
 )
 
 // JSONRes is a common struct used in json response
@@ -34,13 +32,13 @@ func HTTPKey(keyuid string) (string, error) {
 	// check errors in response
 	if len(response.Errors) > 0 {
 		msg := fmt.Sprintf(`No key %s found`, keyuid)
-		return "", errors.NewFBKError(msg, errors.InvalidKey)
+		return "", NewFBKError(msg, InvalidKey)
 	}
 	var data KeyResponseData
 	json.Unmarshal(response.Data, &data)
 	if len(data.Key) != 4 {
 		msg := fmt.Sprintf(`Invalid key %s`, keyuid)
-		return "", errors.NewFBKError(msg, errors.InvalidKey)
+		return "", NewFBKError(msg, InvalidKey)
 	}
 	pub := data.Key[0].(string)
 	// no need to check fp data.Key[1].(string)
@@ -48,7 +46,7 @@ func HTTPKey(keyuid string) (string, error) {
 	// no need to check if key is closed
 	if revoked {
 		msg := fmt.Sprintf(`Key %s revoked`, keyuid)
-		return "", errors.NewFBKError(msg, errors.InvalidKey)
+		return "", NewFBKError(msg, InvalidKey)
 	}
 	return pub, nil
 }
