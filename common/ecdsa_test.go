@@ -57,7 +57,7 @@ func TestReadECDSAKeys1(t *testing.T) {
 	_, _, err := ECDSAReadKeys(jwkInvalid)
 	if err != nil {
 		if err, ok := err.(*FBKError); ok {
-			assert.Equal(t, err.Type(), InvalidJson, "")
+			assert.Equal(t, err.Type(), InvalidJSON, "")
 			return
 		}
 	}

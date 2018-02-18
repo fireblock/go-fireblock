@@ -1,31 +1,34 @@
 package common
 
-const None = 100
-const InvalidType = 200
+// Errors
+const (
+	None        = 100
+	InvalidType = 200
 
-const InvalidAuthentication = 300
-const InvalidKey = 301
-const InvalidCard = 302
-const InvalidProof = 303
-const InvalidSignature = 304
-const InvalidPassphrase = 305
-const InvalidFile = 310
-const InvalidJson = 320
-const InvalidEncoding = 321
+	InvalidAuthentication = 300
+	InvalidKey            = 301
+	InvalidCard           = 302
+	InvalidProof          = 303
+	InvalidSignature      = 304
+	InvalidPassphrase     = 305
+	InvalidFile           = 310
+	InvalidJSON           = 320
+	InvalidEncoding       = 321
 
-const NetworkError = 400
-const NetworkError404 = 404
+	NetworkError    = 400
+	NetworkError404 = 404
 
-const AlreadyExist = 500
+	AlreadyExist = 500
 
-const UnknownError = 600
-const UnknownElement = 601
-const UnknownProvider = 602
+	UnknownError    = 600
+	UnknownElement  = 601
+	UnknownProvider = 602
 
-const EthOpError = 800
-const EthNotEnoughGas = 801
+	EthOpError      = 800
+	EthNotEnoughGas = 801
 
-const NotYetImplemented = 999
+	NotYetImplemented = 999
+)
 
 // FBKError struct
 type FBKError struct {

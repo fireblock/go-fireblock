@@ -27,7 +27,7 @@ func ECDSAReadKeys(key string) (*ecdsa.PublicKey, *ecdsa.PrivateKey, error) {
 
 	var jwk JWKKey
 	if err := json.Unmarshal(byt, &jwk); err != nil {
-		e := NewFBKError(err.Error(), InvalidJson)
+		e := NewFBKError(err.Error(), InvalidJSON)
 		return nil, nil, e
 	}
 	if jwk.Crv != "P-256" {
