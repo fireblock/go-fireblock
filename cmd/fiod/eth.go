@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -179,9 +178,9 @@ func Verify(fireblock *contracts.Fireblock, store *contracts.Store, filename, ha
 	if err != nil {
 		fioError("File registered but invalid", "Invalid Signature", filename, hash, useruidC, cardID, verbose)
 	}
+	message := hash + `||` + cardID
 	if ktype == "pgp" {
-		sig := strings.Replace(signature, "\r", "", -1)
-		r, err := fcommon.PGPVerify([]byte(sig), [][]byte{[]byte(pubkey)})
+		r, err := fcommon.PGPVerify(signature, message, pubkey)
 		if err != nil || !r {
 			fioError("File registered but invalid", "Invalid Signature", filename, hash, useruidC, cardID, verbose)
 		}
@@ -191,7 +190,6 @@ func Verify(fireblock *contracts.Fireblock, store *contracts.Store, filename, ha
 		if err2 != nil {
 			fioError("File registered but ECDSA signature not verified", "", filename, hash, useruidC, cardID, verbose)
 		}
-		message := hash + `||` + cardID
 		r, err := fcommon.ECDSAVerify(jwkPubKey, message, signature)
 		if err != nil || !r {
 			fioError("File registered but ECDSA signature not verified", "", filename, hash, useruidC, cardID, verbose)
@@ -250,9 +248,9 @@ func VerifyByUser(fireblock *contracts.Fireblock, store *contracts.Store, filena
 			continue
 		}
 		// check signature
+		message := hash + `||` + cardID.String()
 		if ktype == "pgp" {
-			sig := strings.Replace(signature, "\r", "", -1)
-			r, err := fcommon.PGPVerify([]byte(sig), [][]byte{[]byte(key.Key)})
+			r, err := fcommon.PGPVerify(signature, message, key.Key)
 			if err != nil || !r {
 				continue
 			}
