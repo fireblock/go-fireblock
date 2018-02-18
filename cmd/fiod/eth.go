@@ -82,7 +82,7 @@ func HexToHash(hex string) (*common.Hash, error) {
 	b, err := hexutil.Decode(hex)
 	if err != nil {
 		msg := fmt.Sprintf("not a hex: %s", hex)
-		return nil, NewFBKError(msg, InvalidType)
+		return nil, fcommon.NewFBKError(msg, fcommon.InvalidType)
 	}
 	hash := common.BytesToHash(b)
 	return &hash, nil
@@ -97,12 +97,12 @@ func GetString(store *contracts.Store, hash common.Hash) (string, error) {
 func GetKey(store *contracts.Store, keyUID string) (*EthKey, error) {
 	b, err := hexutil.Decode(keyUID)
 	if err != nil {
-		return nil, NewFBKError("keyuid invalid", InvalidKey)
+		return nil, fcommon.NewFBKError("keyuid invalid", fcommon.InvalidKey)
 	}
 	hash := common.BytesToHash(b)
 	key, err2 := store.GetKey(nil, hash)
 	if err2 != nil {
-		return nil, NewFBKError("keyuid invalid", InvalidKey)
+		return nil, fcommon.NewFBKError("keyuid invalid", fcommon.InvalidKey)
 	}
 	var k EthKey
 	k = key
@@ -113,11 +113,11 @@ func GetKey(store *contracts.Store, keyUID string) (*EthKey, error) {
 func GetCard(store *contracts.Store, cardID string) (*EthCard, error) {
 	c, err := HexToHash(cardID)
 	if err != nil {
-		return nil, NewFBKError("card-id invalid", InvalidCard)
+		return nil, fcommon.NewFBKError("card-id invalid", fcommon.InvalidCard)
 	}
 	card, err := store.GetCard(nil, *c)
 	if err != nil {
-		return nil, NewFBKError("card-id invalid", InvalidCard)
+		return nil, fcommon.NewFBKError("card-id invalid", fcommon.InvalidCard)
 	}
 	keyUID := common.Hash(card.Key)
 	var res EthCard
