@@ -2,6 +2,7 @@
 *.a
 *.so
 *.test
+coverage.out
 .vscode/
 vendor/
 dist/
