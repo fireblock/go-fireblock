@@ -262,3 +262,8 @@ func TestClearSign(t *testing.T) {
 	res, _ := PGPVerify(sig, msg, fireblockPubKey)
 	assert.Equal(t, res, true, "verify matched")
 }
+
+func TestClearSign2(t *testing.T) {
+	_, err := PGPSign("un message", "a bad key", "fireblock")
+	assert.NotNil(t, err, "bad private key")
+}
