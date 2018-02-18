@@ -70,4 +70,7 @@ func TestSha256File(t *testing.T) {
 	val, err := Sha256File("testdata/test.txt")
 	assert.Equal(t, err, nil, "no error")
 	assert.Equal(t, "0x1bc092112916b7c08af40c8a222c8de2eb1614a59a5cb6387aa0d7d70c778fa2", val, "sha256 on file")
+	_, err = Sha256File("testdata/test__.txt")
+	e := err.(*FBKError)
+	assert.Equal(t, e.Type(), InvalidFile, "no file found")
 }

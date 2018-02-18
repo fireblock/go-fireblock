@@ -37,13 +37,12 @@ func Sha256File(filepath string) (string, error) {
 	file, err := os.Open(filepath)
 	if err != nil {
 		msg := fmt.Sprintf(`Cannot read the %s file`, filepath)
-		e := NewFBKError(msg, InvalidFile)
-		return "", e
+		return "", NewFBKError(msg, InvalidFile)
 	}
 	defer file.Close()
 	hasher := sha256.New()
 	if _, err := io.Copy(hasher, file); err != nil {
-		return "", err
+		return "", NewFBKError("internal", InvalidFile)
 	}
 	return "0x" + hex.EncodeToString(hasher.Sum(nil)), nil
 }
