@@ -35,6 +35,9 @@ func TestPGPToB32(t *testing.T) {
 	b32Key := PGPToB32("0x99090eae43316b2ba65ec52bcd5834a3e07edb2c")
 	assert.Equal(t, len(b32Key), 66, "len is 66")
 	assert.Equal(t, b32Key, "0x10000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c")
+	b32Key = PGPToB32("99090eae43316b2ba65ec52bcd5834a3e07edb2c")
+	assert.Equal(t, len(b32Key), 66, "len is 66")
+	assert.Equal(t, b32Key, "0x10000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c")
 }
 
 func TestB32ToPGP(t *testing.T) {
@@ -45,6 +48,9 @@ func TestB32ToPGP(t *testing.T) {
 
 func TestECDSAToB32(t *testing.T) {
 	b32Key := ECDSAToB32("0x99090eae43316b2ba65ec52bcd5834a3e07edb2c")
+	assert.Equal(t, len(b32Key), 66, "len is 66")
+	assert.Equal(t, b32Key, "0x20000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c")
+	b32Key = ECDSAToB32("99090eae43316b2ba65ec52bcd5834a3e07edb2c")
 	assert.Equal(t, len(b32Key), 66, "len is 66")
 	assert.Equal(t, b32Key, "0x20000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c")
 }
@@ -78,4 +84,7 @@ func TestSha256File(t *testing.T) {
 func TestMetadata(t *testing.T) {
 	val, _ := MetadataFile("testdata/test.txt")
 	assert.Equal(t, `{"filename":"test.txt","size":18}`, val, "no error")
+	_, err := MetadataFile("testdata/test__.txt")
+	e := err.(*FBKError)
+	assert.Equal(t, e.Type(), InvalidFile, "no error")
 }
