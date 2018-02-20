@@ -74,3 +74,8 @@ func TestSha256File(t *testing.T) {
 	e := err.(*FBKError)
 	assert.Equal(t, e.Type(), InvalidFile, "no file found")
 }
+
+func TestMetadata(t *testing.T) {
+	val, _ := MetadataFile("testdata/test.txt")
+	assert.Equal(t, `{"filename":"test.txt","size":18}`, val, "no error")
+}

@@ -22,9 +22,11 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"regexp"
 	"strings"
 
@@ -33,10 +35,9 @@ import (
 
 // Sha256File compute the sha256 of a file
 func Sha256File(filepath string) (string, error) {
-	// dat, err := ioutil.ReadFile(filepath)
 	file, err := os.Open(filepath)
 	if err != nil {
-		msg := fmt.Sprintf(`Cannot read the %s file`, filepath)
+		msg := fmt.Sprintf(`No file at %s`, filepath)
 		return "", NewFBKError(msg, InvalidFile)
 	}
 	defer file.Close()
@@ -45,6 +46,34 @@ func Sha256File(filepath string) (string, error) {
 		return "", NewFBKError("internal", InvalidFile)
 	}
 	return "0x" + hex.EncodeToString(hasher.Sum(nil)), nil
+}
+
+// Metadata meta data
+type Metadata struct {
+	Filename string `json:"filename"`
+	Type     string `json:"type,omitempty"`
+	Size     int64  `json:"size"`
+}
+
+// MetadataFile extract Metadata from file
+func MetadataFile(filepath string) (string, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		msg := fmt.Sprintf(`No file at %s`, filepath)
+		return "", NewFBKError(msg, InvalidFile)
+	}
+	defer file.Close()
+	fi, err := file.Stat()
+	if err != nil {
+		msg := fmt.Sprintf(`No stat info at %s`, filepath)
+		return "", NewFBKError(msg, InvalidFile)
+	}
+	// json -> string
+	metadata := Metadata{"", "", 0}
+	metadata.Filename = path.Base(filepath)
+	metadata.Size = fi.Size()
+	export, _ := json.Marshal(metadata)
+	return string(export), nil
 }
 
 // Keccak256 return keccak256 value of a string
