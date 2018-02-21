@@ -114,3 +114,8 @@ func TestLoadFioContentECDSAPubKey(t *testing.T) {
 	keyuid, _, _, _ := LoadFioContent(jwkPubKeyFioContent1)
 	assert.Equal(t, "0x20000000000000000000000002e1ee50a71cb8a81aff1461c2d3163b39f88a25", keyuid, "no error")
 }
+
+func TestLoadFioFileECDSAPubKey(t *testing.T) {
+	keyuid, _, _, _ := LoadFioFile("testdata/jwk_2e1ee50a71cb8a81aff1461c2d3163b39f88a25.fio")
+	assert.Equal(t, "0x20000000000000000000000002e1ee50a71cb8a81aff1461c2d3163b39f88a25", keyuid, "no error")
+}
