@@ -1,3 +1,5 @@
+![Logo of Fireblock](/doc/fireblock.png)
+
 FIO
 ===
 
