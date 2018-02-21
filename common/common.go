@@ -236,12 +236,6 @@ func LoadFioContent(content string) (string, string, string, error) {
 
 // LoadFioFile load a fio file
 func LoadFioFile(filepath string) (string, string, string, error) {
-	file, err := os.Open(filepath)
-	if err != nil {
-		msg := fmt.Sprintf(`No file at %s`, filepath)
-		return "", "", "", NewFBKError(msg, InvalidFile)
-	}
-	defer file.Close()
 	content, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		msg := fmt.Sprintf(`No file at %s`, filepath)
