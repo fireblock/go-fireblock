@@ -7,6 +7,20 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const jwkPubKeyFioContent1 = `
+{
+	"keys": [
+		{
+			"crv": "P-256",
+			"ext": true,
+			"key_ops": ["verify"],
+			"kty": "EC",
+			"x": "qpiv3dvfmLmUEx561WlSWyvMGOFA5r9K8mLt2R7NZzk",
+			"y": "FreoygBEeuuxRekKf5g0u-UNhRnfeN5QXGYHEDWpRPQ"
+		}
+	]
+}`
+
 func TestSHA256(t *testing.T) {
 	hash1 := Sha256("toto")
 	assert.Equal(t, hash1, "0x31f7a65e315586ac198bd798b6629ce4903d0899476d5741a9f32e2e521b6a66", "they must be equal")
@@ -97,7 +111,6 @@ func TestLoadFioContentPGPPubKey(t *testing.T) {
 }
 
 func TestLoadFioContentECDSAPubKey(t *testing.T) {
-	keyuid, _, pubkey, _ := LoadFioContent(jwkPubKey1)
+	keyuid, _, _, _ := LoadFioContent(jwkPubKeyFioContent1)
 	assert.Equal(t, "0x20000000000000000000000002e1ee50a71cb8a81aff1461c2d3163b39f88a25", keyuid, "no error")
-	assert.Equal(t, jwkPubKey1, pubkey, "no error")
 }
