@@ -185,11 +185,7 @@ func Verify(fireblock *contracts.Fireblock, store *contracts.Store, filename, ha
 		}
 		fioSuccess(filename, hash, "", cardID, true, verbose)
 	} else if ktype == "ecdsa" {
-		jwkPubKey, _, err2 := fcommon.ECDSAReadKeys(pubkey)
-		if err2 != nil {
-			fioError("File registered but ECDSA signature not verified", "", filename, hash, useruidC, cardID, verbose)
-		}
-		r, err := fcommon.ECDSAVerify(jwkPubKey, message, signature)
+		r, err := fcommon.ECDSAVerify(pubkey, message, signature)
 		if err != nil || !r {
 			fioError("File registered but ECDSA signature not verified", "", filename, hash, useruidC, cardID, verbose)
 		}
@@ -255,12 +251,8 @@ func VerifyByUser(fireblock *contracts.Fireblock, store *contracts.Store, filena
 			}
 			// check Card
 		} else if ktype == "ecdsa" {
-			jwkPubKey, _, err2 := fcommon.ECDSAReadKeys(key.Key)
-			if err2 != nil {
-				continue
-			}
 			message := hash + `||` + cardID.String()
-			r, err := fcommon.ECDSAVerify(jwkPubKey, message, signature)
+			r, err := fcommon.ECDSAVerify(key.Key, message, signature)
 			if err != nil || !r {
 				continue
 			}

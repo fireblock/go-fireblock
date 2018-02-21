@@ -70,6 +70,8 @@ func TestCheckB32Type(t *testing.T) {
 	assert.Equal(t, ethType, "eth", "this is a eth key")
 	unknownType := B32Type("0x99090eae43316b2ba65ec52bcd5834a3e07edb2c")
 	assert.Equal(t, unknownType, "unknown", "this is an unknown eth key")
+	unkownType2 := B32Type("0x80000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c")
+	assert.Equal(t, unkownType2, "unknown", "this is an unknown eth key")
 }
 
 func TestSha256File(t *testing.T) {
@@ -87,4 +89,15 @@ func TestMetadata(t *testing.T) {
 	_, err := MetadataFile("testdata/test__.txt")
 	e := err.(*FBKError)
 	assert.Equal(t, e.Type(), InvalidFile, "no error")
+}
+
+func TestLoadFioContentPGPPubKey(t *testing.T) {
+	keyuid, _, _, _ := LoadFioContent(fireblockPubKey)
+	assert.Equal(t, "0x10000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c", keyuid, "no error")
+}
+
+func TestLoadFioContentECDSAPubKey(t *testing.T) {
+	keyuid, _, pubkey, _ := LoadFioContent(jwkPubKey1)
+	assert.Equal(t, "0x20000000000000000000000002e1ee50a71cb8a81aff1461c2d3163b39f88a25", keyuid, "no error")
+	assert.Equal(t, jwkPubKey1, pubkey, "no error")
 }

@@ -138,11 +138,7 @@ func GVerify(filename, hash, useruid string, verbose bool) {
 				}
 				fioSuccess(filename, hash, useruid, cardID, true, verbose)
 			} else if ktype == "ecdsa" {
-				jwkPubKey, _, err2 := common.ECDSAReadKeys(pubkey)
-				if err2 != nil {
-					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)
-				}
-				r, err := common.ECDSAVerify(jwkPubKey, message, signature)
+				r, err := common.ECDSAVerify(pubkey, message, signature)
 				if err != nil || !r {
 					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)
 				}
@@ -198,11 +194,7 @@ func CVerify(filename, hash, cardID string, verbose bool) {
 				}
 				fioSuccess(filename, hash, useruid, cardID, true, verbose)
 			} else if ktype == "ecdsa" {
-				jwkPubKey, _, err2 := common.ECDSAReadKeys(pubkey)
-				if err2 != nil {
-					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)
-				}
-				r, err := common.ECDSAVerify(jwkPubKey, message, signature)
+				r, err := common.ECDSAVerify(pubkey, message, signature)
 				if err != nil || !r {
 					fioError("File registered but ECDSA signature not verified", "", filename, hash, useruid, cardID, verbose)
 				}

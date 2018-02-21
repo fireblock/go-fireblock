@@ -267,3 +267,13 @@ func TestClearSign2(t *testing.T) {
 	_, err := PGPSign("un message", "a bad key", "fireblock")
 	assert.NotNil(t, err, "bad private key")
 }
+
+func TestPGPGetFingerprint(t *testing.T) {
+	fp, _ := PGPFingerprint(fireblockPrivKey)
+	assert.Equal(t, fp, "0x99090eae43316b2ba65ec52bcd5834a3e07edb2c", "Invalid fingerprint")
+	fp, _ = PGPFingerprint(fireblockPubKey)
+	assert.Equal(t, fp, "0x99090eae43316b2ba65ec52bcd5834a3e07edb2c", "Invalid fingerprint")
+	_, err := PGPFingerprint("not a pgp key")
+	e := err.(*FBKError)
+	assert.Equal(t, e.Type(), InvalidKey, "Invalid fingerprint")
+}

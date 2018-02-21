@@ -29,7 +29,7 @@ func PGPSign(message, privkey, passphrase string) (string, error) {
 
 // PGPVerify a clearsign message
 func PGPVerify(signature, message, pubkey string) (bool, error) {
-	entity, err := loadPublicKey(pubkey)
+	entity, err := loadPGPPublicKey(pubkey)
 	if err != nil {
 		return false, err
 	}
@@ -70,7 +70,19 @@ func PGPVerify(signature, message, pubkey string) (bool, error) {
 	return true, nil
 }
 
-func loadPublicKey(pubkey string) (*openpgp.Entity, error) {
+// PGPFingerprint get fingerprint of pgp key
+func PGPFingerprint(key string) (string, error) {
+	entitylist, err := openpgp.ReadArmoredKeyRing(bytes.NewBufferString(key))
+	if err != nil {
+		return "", NewFBKError(err.Error(), InvalidKey)
+	}
+	// use only the first key
+	entity := entitylist[0]
+	fp := fmt.Sprintf("0x%x", entity.PrimaryKey.Fingerprint)
+	return fp, nil
+}
+
+func loadPGPPublicKey(pubkey string) (*openpgp.Entity, error) {
 	entitylist, err := openpgp.ReadArmoredKeyRing(bytes.NewBufferString(pubkey))
 	if err != nil {
 		return nil, NewFBKError(err.Error(), InvalidKey)

@@ -77,8 +77,7 @@ func TestReadECDSAKeys3(t *testing.T) {
 }
 
 func TestECDSAFingerprint(t *testing.T) {
-	pub, _, _ := ECDSAReadKeys(jwkPubKey1)
-	fp := ECDSAFingerprint(pub.X, pub.Y)
+	fp, _ := ECDSAFingerprint(jwkPubKey1)
 	assert.Equal(t, fp, jwkFpKey1, "no error")
 	keyuid := ECDSAToB32(fp)
 	ktype := B32Type(keyuid)
@@ -87,19 +86,17 @@ func TestECDSAFingerprint(t *testing.T) {
 
 func TestECDSASign(t *testing.T) {
 	// sig := ECDSASign(jwkPrivKey1, "message") //
-	pub, _, _ := ECDSAReadKeys(jwkPubKey1) // bWVzc2FnZQ
 	// VTyYt7K6ivCCiETREH6UwUSd4onQFLPZDN4zTrijvEA-jUYP_70NVxuwzYcX88ksgFt-HUaqxGzCSl5xo4Lp4w
 	// HIzNxURC-mJDFMWGyoY_Qc1gp68gBdgG7LE7pOg15D3scy5iEhISw9tXYtbwH6FHo4jQ2rRhzdszhhkEQwv-nQ
-	res, err := ECDSAVerify(pub, "message", "-32Xb5x06cc3vR3MLbCr51WhLjP3u6uJ3k9Gpq1_DHGD4i0grV1Sys8HKCspPJLZDdvMJiIjFCMaug-qRhaD2A")
+	res, err := ECDSAVerify(jwkPubKey1, "message", "-32Xb5x06cc3vR3MLbCr51WhLjP3u6uJ3k9Gpq1_DHGD4i0grV1Sys8HKCspPJLZDdvMJiIjFCMaug-qRhaD2A")
 	// res, err := ECDSAVerify(pub, "", "wDKeCt0NkKMAh69Z3U5Ix9LUBqbq-NzAGw2NlWjyrBuwhHYpS_bhD9_JfL9VCNHHnVclkYx_IAt_F46gOMNq1g")
 	assert.Equal(t, err, nil, "no error expected")
 	assert.Equal(t, res, true, "")
 }
 
 func TestECDSAVerify(t *testing.T) {
-	pub, priv, _ := ECDSAReadKeys(jwkPrivKey1)
-	sig, err := ECDSASign(priv, "message")
+	sig, err := ECDSASign(jwkPrivKey1, "message")
 	assert.Equal(t, err, nil, "no error expected")
-	res, _ := ECDSAVerify(pub, "message", sig)
+	res, _ := ECDSAVerify(jwkPubKey1, "message", sig)
 	assert.Equal(t, res, true, "")
 }

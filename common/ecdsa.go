@@ -73,7 +73,12 @@ func ECDSAReadKeys(key string) (*ecdsa.PublicKey, *ecdsa.PrivateKey, error) {
 }
 
 // ECDSASign sign with ECDSA algo
-func ECDSASign(priv *ecdsa.PrivateKey, message string) (string, error) {
+func ECDSASign(privkey, message string) (string, error) {
+	// load key
+	priv, err := loadECDSAPrivateKey(privkey)
+	if err != nil {
+		return "", err
+	}
 	// compute hash
 	hashed := RawSha256(message)
 	r, s, err := ecdsa.Sign(rand.Reader, priv, []byte(hashed))
@@ -95,7 +100,12 @@ func ECDSASign(priv *ecdsa.PrivateKey, message string) (string, error) {
 }
 
 // ECDSAVerify verify a signed message
-func ECDSAVerify(pub *ecdsa.PublicKey, message, signature string) (bool, error) {
+func ECDSAVerify(pubkey, message, signature string) (bool, error) {
+	// load key
+	pub, err := loadECDSAPublicKey(pubkey)
+	if err != nil {
+		return false, err
+	}
 	hashed := RawSha256(message)
 	sig, err := base64.RawURLEncoding.DecodeString(signature)
 	if err != nil {
@@ -114,12 +124,16 @@ func ECDSAVerify(pub *ecdsa.PublicKey, message, signature string) (bool, error) 
 }
 
 // ECDSAFingerprint compute a fingerprint
-func ECDSAFingerprint(x, y *big.Int) string {
+func ECDSAFingerprint(key string) (string, error) {
+	k, err := loadECDSAPublicKey(key)
+	if err != nil {
+		return "", err
+	}
 	const ecdsaFingerprintTemplate = `{"crv":"P-256","kty":"EC","x":"%s","y":"%s"}`
-	xx := base64.RawURLEncoding.EncodeToString(x.Bytes())
-	yy := base64.RawURLEncoding.EncodeToString(y.Bytes())
+	xx := base64.RawURLEncoding.EncodeToString(k.X.Bytes())
+	yy := base64.RawURLEncoding.EncodeToString(k.Y.Bytes())
 	msg := fmt.Sprintf(ecdsaFingerprintTemplate, xx, yy)
-	return Sha1(msg)
+	return Sha1(msg), nil
 }
 
 func fromHex(s string) (*big.Int, error) {
@@ -131,4 +145,67 @@ func fromHex(s string) (*big.Int, error) {
 	}
 	r := new(big.Int).SetBytes(l)
 	return r, nil
+}
+
+func loadECDSAPrivateKey(key string) (*ecdsa.PrivateKey, error) {
+	byt := []byte(key)
+
+	var jwk JWKKey
+	if err := json.Unmarshal(byt, &jwk); err != nil {
+		e := NewFBKError(err.Error(), InvalidJSON)
+		return nil, e
+	}
+	if jwk.Crv != "P-256" {
+		msg := fmt.Sprintf(`key format not supported %s`, jwk.Crv)
+		e := NewFBKError(msg, InvalidKey)
+		return nil, e
+	}
+	// private key
+	k := new(ecdsa.PrivateKey)
+	k.PublicKey.Curve = elliptic.P256()
+	x, err1 := fromHex(jwk.X)
+	y, err2 := fromHex(jwk.Y)
+	d, err3 := fromHex(jwk.D)
+	if err1 != nil {
+		return nil, err1
+	}
+	if err2 != nil {
+		return nil, err2
+	}
+	if err3 != nil {
+		return nil, err3
+	}
+	k.PublicKey.X = x
+	k.PublicKey.Y = y
+	k.D = d
+	return k, nil
+}
+
+func loadECDSAPublicKey(key string) (*ecdsa.PublicKey, error) {
+	byt := []byte(key)
+
+	var jwk JWKKey
+	if err := json.Unmarshal(byt, &jwk); err != nil {
+		e := NewFBKError(err.Error(), InvalidJSON)
+		return nil, e
+	}
+	if jwk.Crv != "P-256" {
+		msg := fmt.Sprintf(`key format not supported %s`, jwk.Crv)
+		e := NewFBKError(msg, InvalidKey)
+		return nil, e
+	}
+	// public key
+	k := new(ecdsa.PublicKey)
+	k.Curve = elliptic.P256()
+	x, err1 := fromHex(jwk.X)
+	y, err2 := fromHex(jwk.Y)
+	if err1 != nil {
+		return nil, err1
+	}
+	if err2 != nil {
+		return nil, err2
+	}
+	k.X = x
+	k.Y = y
+	return k, nil
 }

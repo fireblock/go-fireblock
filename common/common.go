@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"path"
 	"regexp"
@@ -154,4 +155,97 @@ func B32Type(b32 string) string {
 	} else {
 		return "unknown"
 	}
+}
+
+const regexPGPPrivKey = `.*(-----BEGIN PGP PRIVATE KEY BLOCK-----[^\.]*-----END PGP PRIVATE KEY BLOCK-----).*`
+const regexPGPPubKey = `.*(-----BEGIN PGP PUBLIC KEY BLOCK-----[^\.]*-----END PGP PUBLIC KEY BLOCK-----).*`
+
+// ECDSAJWK ecdsa jwk
+type ECDSAJWK struct {
+	Crv    string   `json:"crv"`
+	Kty    string   `json:"kty"`
+	X      string   `json:"x"`
+	Y      string   `json:"y"`
+	D      string   `json:"d,omitempty"`
+	Keyops []string `json:"key_ops,omitempty"`
+}
+
+// ECDSAFIO ecdsa fio
+type ECDSAFIO struct {
+	Keys []json.RawMessage `json:"keys"`
+}
+
+// LoadFioContent load a fio content
+func LoadFioContent(content string) (string, string, string, error) {
+	// check if PGP
+	regexPriv, _ := regexp.Compile(regexPGPPrivKey)
+	regexPub, _ := regexp.Compile(regexPGPPubKey)
+	priv := regexPriv.FindStringSubmatch(content)
+	pub := regexPub.FindStringSubmatch(content)
+	if len(priv) > 0 || (len(pub) > 0) {
+		var err error
+		fp := ""
+		privkey := ""
+		pubkey := ""
+		if len(priv) > 0 {
+			privkey = priv[1]
+			fp, err = PGPFingerprint(privkey)
+			if err != nil {
+				return "", "", "", NewFBKError("no fingerprint", InvalidKey)
+			}
+		}
+		if len(pub) > 0 {
+			pubkey = pub[1]
+			fp, err = PGPFingerprint(pubkey)
+			if err != nil {
+				return "", "", "", NewFBKError("no fingerprint", InvalidKey)
+			}
+		}
+		keyuid := PGPToB32(fp)
+		return keyuid, privkey, pubkey, nil
+	}
+	// check if JWK ECDSA
+	var data ECDSAFIO
+	err := json.Unmarshal([]byte(content), &data)
+	if err == nil {
+		keyuid := ""
+		privkey := ""
+		pubkey := ""
+		for _, key := range data.Keys {
+			txt := string(key)
+			var k ECDSAJWK
+			err := json.Unmarshal([]byte(txt), &k)
+			if err != nil {
+				return "", "", "", NewFBKError("unknown formtat", InvalidKey)
+			}
+			fp, err := ECDSAFingerprint(txt)
+			if err != nil {
+				return "", "", "", NewFBKError("no fingerprint", InvalidKey)
+			}
+			if k.D == "" {
+				pubkey = txt
+			} else {
+				privkey = txt
+			}
+			keyuid = ECDSAToB32(fp)
+		}
+		return keyuid, privkey, pubkey, nil
+	}
+	return "", "", "", NewFBKError("invalid format", InvalidKey)
+}
+
+// LoadFioFile load a fio file
+func LoadFioFile(filepath string) (string, string, string, error) {
+	file, err := os.Open(filepath)
+	if err != nil {
+		msg := fmt.Sprintf(`No file at %s`, filepath)
+		return "", "", "", NewFBKError(msg, InvalidFile)
+	}
+	defer file.Close()
+	content, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		msg := fmt.Sprintf(`No file at %s`, filepath)
+		return "", "", "", NewFBKError(msg, InvalidFile)
+	}
+	return LoadFioContent(string(content))
 }
