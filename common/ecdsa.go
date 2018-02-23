@@ -21,57 +21,6 @@ type JWKKey struct {
 	Y      string   `json:"y"`
 }
 
-// ECDSAReadKeys read ECDSA Keys
-func ECDSAReadKeys(key string) (*ecdsa.PublicKey, *ecdsa.PrivateKey, error) {
-	byt := []byte(key)
-
-	var jwk JWKKey
-	if err := json.Unmarshal(byt, &jwk); err != nil {
-		e := NewFBKError(err.Error(), InvalidJSON)
-		return nil, nil, e
-	}
-	if jwk.Crv != "P-256" {
-		msg := fmt.Sprintf(`key format not supported %s`, jwk.Crv)
-		e := NewFBKError(msg, InvalidKey)
-		return nil, nil, e
-	}
-	if jwk.D == "" {
-		// public key
-		k := new(ecdsa.PublicKey)
-		k.Curve = elliptic.P256()
-		x, err1 := fromHex(jwk.X)
-		y, err2 := fromHex(jwk.Y)
-		if err1 != nil {
-			return nil, nil, err1
-		}
-		if err2 != nil {
-			return nil, nil, err2
-		}
-		k.X = x
-		k.Y = y
-		return k, nil, nil
-	}
-	// private key
-	k := new(ecdsa.PrivateKey)
-	k.PublicKey.Curve = elliptic.P256()
-	x, err1 := fromHex(jwk.X)
-	y, err2 := fromHex(jwk.Y)
-	d, err3 := fromHex(jwk.D)
-	if err1 != nil {
-		return nil, nil, err1
-	}
-	if err2 != nil {
-		return nil, nil, err2
-	}
-	if err3 != nil {
-		return nil, nil, err3
-	}
-	k.PublicKey.X = x
-	k.PublicKey.Y = y
-	k.D = d
-	return &k.PublicKey, k, nil
-}
-
 // ECDSASign sign with ECDSA algo
 func ECDSASign(privkey, message string) (string, error) {
 	// load key
@@ -208,4 +157,39 @@ func loadECDSAPublicKey(key string) (*ecdsa.PublicKey, error) {
 	k.X = x
 	k.Y = y
 	return k, nil
+}
+
+// ECDSAImport import a base64 encoded url key
+func ECDSAImport(b64u string) (string, error) {
+	data, err := base64.RawURLEncoding.DecodeString(b64u)
+	if err != nil {
+		return "", NewFBKError("cannot decode ECDSA key (b64u)", InvalidKey)
+	}
+	// decode
+	var jwk JWKKey
+	if err := json.Unmarshal(data, &jwk); err != nil {
+		return "", NewFBKError("cannot decode ECDSA Key (jwk)", InvalidKey)
+	}
+	jwk.Ext = true
+	jwk.KeyOps = []string{"sign"}
+	// encode
+	res, _ := json.Marshal(jwk)
+	return string(res), nil
+}
+
+// ECDSAExport export a JSON key into a base64url key
+func ECDSAExport(privkey string) (string, error) {
+	// decode
+	var jwk JWKKey
+	if err := json.Unmarshal([]byte(privkey), &jwk); err != nil {
+		return "", NewFBKError("cannot decode ECDSA Key (jwk)", InvalidKey)
+	}
+	// Field order is important.
+	str := fmt.Sprintf(`{"crv":"%s","d":"%s", "kty":"EC","x":"%s","y":"%s"}`,
+		jwk.Crv,
+		jwk.D,
+		jwk.X,
+		jwk.Y,
+	)
+	return base64.RawURLEncoding.EncodeToString([]byte(str)), nil
 }

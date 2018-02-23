@@ -1,7 +1,8 @@
 package common
 
 import (
-	"crypto/elliptic"
+	"bytes"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -28,6 +29,8 @@ const jwkPrivKey1 = `{
 	"y": "FreoygBEeuuxRekKf5g0u-UNhRnfeN5QXGYHEDWpRPQ"
 }`
 
+const jwkB64U = `eyJjcnYiOiJQLTI1NiIsImQiOiJ4cjE1TXMwcG01VlNGTFBJNzZCZlV3TVphOUowNGJVbUdsSGsxWTBQS0tnIiwgImt0eSI6IkVDIiwieCI6InFwaXYzZHZmbUxtVUV4NTYxV2xTV3l2TUdPRkE1cjlLOG1MdDJSN05aemsiLCJ5IjoiRnJlb3lnQkVldXV4UmVrS2Y1ZzB1LVVOaFJuZmVONVFYR1lIRURXcFJQUSJ9`
+
 const jwkFpKey1 = "0x02e1ee50a71cb8a81aff1461c2d3163b39f88a25"
 const jwkKeyuidKey1 = "0x20000000000000000000000002e1ee50a71cb8a81aff1461c2d3163b39f88a25"
 
@@ -53,29 +56,6 @@ const JwkPrivKey2 = `{
 const jwkFpKey2 = "0xc4db45d29987aead9b6fee307f5142a4af523b60"
 const JwkKeyuidKey2 = "0x200000000000000000000000c4db45d29987aead9b6fee307f5142a4af523b60"
 
-func TestReadECDSAKeys1(t *testing.T) {
-	_, _, err := ECDSAReadKeys(jwkInvalid)
-	if err != nil {
-		if err, ok := err.(*FBKError); ok {
-			assert.Equal(t, err.Type(), InvalidJSON, "")
-			return
-		}
-	}
-}
-
-func TestReadECDSAKeys2(t *testing.T) {
-	pub, _, err := ECDSAReadKeys(jwkPubKey1)
-	assert.Equal(t, err, nil, "no error")
-	assert.NotEqual(t, pub, nil, "pub key")
-}
-
-func TestReadECDSAKeys3(t *testing.T) {
-	pub, priv, err := ECDSAReadKeys(jwkPrivKey1)
-	assert.Equal(t, err, nil, "no error")
-	assert.Equal(t, pub.Curve, elliptic.P256(), "P256 curve")
-	assert.Equal(t, priv.Curve, elliptic.P256(), "P256 curve")
-}
-
 func TestECDSAFingerprint(t *testing.T) {
 	fp, _ := ECDSAFingerprint(jwkPubKey1)
 	assert.Equal(t, fp, jwkFpKey1, "no error")
@@ -99,4 +79,18 @@ func TestECDSAVerify(t *testing.T) {
 	assert.Equal(t, err, nil, "no error expected")
 	res, _ := ECDSAVerify(jwkPubKey1, "message", sig)
 	assert.Equal(t, res, true, "")
+}
+
+func TestECDSAExportKey(t *testing.T) {
+	buf := new(bytes.Buffer)
+	json.Compact(buf, []byte(jwkPrivKey1))
+	jwk := buf.String()
+	k, _ := ECDSAExport(jwk)
+	assert.Equal(t, k, jwkB64U, "")
+}
+
+func TestECDSAImport(t *testing.T) {
+	k, _ := ECDSAExport(jwkPrivKey1)
+	_, err := ECDSAImport(k)
+	assert.Nil(t, err, "no error")
 }
