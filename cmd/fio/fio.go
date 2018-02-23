@@ -21,12 +21,15 @@ var (
 	userID    = verifyCmd.Flag("user-id", "Set user id").Short('u').Default("0x0").String()
 	fverify   = verifyCmd.Arg("file", "File to verify.").Required().ExistingFile()
 
-	// config file ~/.config/fireblock/fio.yaml overrided
 	signCmd    = app.Command("sign", "sign a file")
-	token      = signCmd.Flag("token", "Set token").Short('t').Default("").String()
-	fkey       = signCmd.Flag("key", "Set token").Short('k').Required().ExistingFile()
-	passphrase = signCmd.Flag("passphrase", "Set token").Short('p').Default("").String()
+	token      = signCmd.Flag("token", "token").Short('t').Default("").String()
+	signKey    = signCmd.Flag("key", "private key in base64url").Short('k').Default("").String()
+	signFio    = signCmd.Flag("fio", "path to fio file").Short('f').ExistingFile()
+	passphrase = signCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
 	fsign      = signCmd.Arg("file", "File to sign.").Required().ExistingFile()
+
+	convertCmd = app.Command("convert", "convert a fio to b64u")
+	cconvert   = convertCmd.Arg("file", "File to convert").Required().ExistingFile()
 )
 
 func exit(msg string) {
@@ -39,16 +42,25 @@ func sign() {
 	if token == nil || *token == "" {
 		exit("Missing token! add -t tokenValue")
 	}
+	// Read the private key (signFio or signKey)
+	var keyuid, privkey string
+	var err error
 	// check fio file
-	if fkey == nil || *fkey == "" {
-		exit("Missing key! add -k filepath")
+	if (signFio == nil || *signFio == "") && (*signKey == "") {
+		exit("Missing private key! add --fio filepath or --key privatekey")
+	} else if signFio != nil && len(*signFio) > 1 {
+		keypath := *signFio
+		// load fio file
+		keyuid, privkey, _, err = common.LoadFioFile(keypath)
+		if err != nil {
+			exit("Invalid fio file")
+		}
+	} else if signKey != nil && len(*signKey) > 1 {
+		keyuid, privkey, err = common.LoadB64U(*signKey)
+	} else {
+		exit("Missing private key! add --fio filepath or --key privatekey with correct values")
 	}
-	// load fio file
-	keypath := *fkey
-	keyuid, privkey, _, err := common.LoadFioFile(keypath)
-	if err != nil {
-		exit("Invalid fio file")
-	}
+
 	// compute sha256
 	filepath := *fsign
 	sha256, err := common.Sha256File(filepath)
@@ -118,6 +130,26 @@ func verify() {
 	}
 }
 
+func convert() {
+	if cconvert == nil {
+		exit("Missing file")
+	}
+	keyuid, privkey, _, err := common.LoadFioFile(*cconvert)
+	if err != nil {
+		exit("invalid fio file")
+	}
+	ktype := common.B32Type(keyuid)
+	if ktype == "pgp" {
+		res := common.PGPExport(privkey)
+		fmt.Println(res)
+	} else if ktype == "ecdsa" {
+		res, _ := common.ECDSAExport(privkey)
+		fmt.Println(res)
+	} else {
+		exit("unknown key format")
+	}
+}
+
 func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(fireblock.Version).Author(fireblock.Author)
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
@@ -125,5 +157,9 @@ func main() {
 		sign()
 	case verifyCmd.FullCommand():
 		verify()
+	case convertCmd.FullCommand():
+		convert()
+	default:
+		exit("unknown command. Use --help")
 	}
 }

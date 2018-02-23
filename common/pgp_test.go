@@ -277,3 +277,9 @@ func TestPGPGetFingerprint(t *testing.T) {
 	e := err.(*FBKError)
 	assert.Equal(t, e.Type(), InvalidKey, "Invalid fingerprint")
 }
+func TestPGPPrivKeyToB64U1(t *testing.T) {
+	res := PGPExport(fireblockPrivKey)
+	assert.NotNil(t, res, "not empty string")
+	res2, _ := PGPImport(res)
+	assert.NotNil(t, res2, "not empty string")
+}

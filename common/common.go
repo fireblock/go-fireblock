@@ -21,6 +21,7 @@ package common
 import (
 	"crypto/sha1"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -157,8 +158,8 @@ func B32Type(b32 string) string {
 	}
 }
 
-const regexPGPPrivKey = `.*(-----BEGIN PGP PRIVATE KEY BLOCK-----[^\.]*-----END PGP PRIVATE KEY BLOCK-----).*`
-const regexPGPPubKey = `.*(-----BEGIN PGP PUBLIC KEY BLOCK-----[^\.]*-----END PGP PUBLIC KEY BLOCK-----).*`
+const regexPGPPrivKey = `(?s).*(-----BEGIN PGP PRIVATE KEY BLOCK-----.*-----END PGP PRIVATE KEY BLOCK-----).*`
+const regexPGPPubKey = `(?s).*(-----BEGIN PGP PUBLIC KEY BLOCK-----.*-----END PGP PUBLIC KEY BLOCK-----).*`
 
 // ECDSAJWK ecdsa jwk
 type ECDSAJWK struct {
@@ -242,4 +243,35 @@ func LoadFioFile(filepath string) (string, string, string, error) {
 		return "", "", "", NewFBKError(msg, InvalidFile)
 	}
 	return LoadFioContent(string(content))
+}
+
+// LoadB64U load a base64url private key
+func LoadB64U(data string) (string, string, error) {
+	content, err := base64.RawURLEncoding.DecodeString(data)
+	if err != nil {
+		return "", "", NewFBKError("can't decode key", InvalidKey)
+	}
+	regexPriv, _ := regexp.Compile(regexPGPPrivKey)
+	priv := regexPriv.FindStringSubmatch(string(content))
+	if len(priv) > 0 {
+		fp, err := PGPFingerprint(priv[1])
+		if err != nil {
+			return "", "", NewFBKError("Malformed private pgp key", InvalidKey)
+		}
+		keyuid := PGPToB32(fp)
+		return keyuid, priv[1], nil
+	}
+	var k ECDSAJWK
+	err = json.Unmarshal(content, &k)
+	if err != nil {
+		return "", "", NewFBKError("unknown format", InvalidKey)
+	}
+	if k.D == "" {
+		return "", "", NewFBKError("Not a private ECDSA key", InvalidKey)
+	}
+	fp, err := ECDSAFingerprint(string(content))
+	if err != nil {
+		return "", "", NewFBKError("no fingerprint", InvalidKey)
+	}
+	return fp, string(content), nil
 }

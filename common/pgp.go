@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io"
 
@@ -80,6 +81,48 @@ func PGPFingerprint(key string) (string, error) {
 	entity := entitylist[0]
 	fp := fmt.Sprintf("0x%x", entity.PrimaryKey.Fingerprint)
 	return fp, nil
+}
+
+// PGPExport pgp armored priv key into base64url string
+func PGPExport(key string) string {
+	/*	entity, err := loadPrivateKey(key, passphrase)
+		if err != nil {
+			return "", err
+		}
+		buf := new(bytes.Buffer)
+		entity.SerializePrivate(buf, nil)
+		res := base64.RawURLEncoding.EncodeToString(buf.Bytes())
+		return res, nil
+	*/
+	return base64.RawURLEncoding.EncodeToString([]byte(key))
+}
+
+// PGPImport toto
+func PGPImport(key string) (string, error) {
+	/*
+		el, err := openpgp.ReadKeyRing(strings.NewReader(string(serialized)))
+		if err != nil {
+			return "", err
+		}
+		entity := el[0]
+		// on encode la clef
+		buf := new(bytes.Buffer)
+		w, err := armor.Encode(buf, openpgp.PrivateKeyType, nil)
+		if err != nil {
+			return "", err
+		}
+		defer w.Close()
+		err = entity.SerializePrivate(w, nil)
+		if err != nil {
+			return "", err
+		}
+		return buf.String(), nil
+	*/
+	serialized, err := base64.RawURLEncoding.DecodeString(key)
+	if err != nil {
+		return "", err
+	}
+	return string(serialized), nil
 }
 
 func loadPGPPublicKey(pubkey string) (*openpgp.Entity, error) {
