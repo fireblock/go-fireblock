@@ -14,6 +14,7 @@ var (
 	app = kingpin.New("fio", "fireblock.io CLI (verify and sign)")
 
 	jverbose = app.Flag("json", "Output in JSON format").Short('j').Bool()
+	server   = app.Flag("server", "Default to fireblock.io").Short('s').Default("fireblock.io").String()
 
 	verifyCmd = app.Command("verify", "verify a file")
 	cardID    = verifyCmd.Flag("card-id", "Set card id").Short('c').Default("0x0").String()
@@ -95,12 +96,11 @@ func sign() {
 
 func verify() {
 	if fverify == nil {
-		exit("Mssing file")
+		exit("Missing file")
 	}
 
 	if *cardID == "0x0" && *userID == "0x0" {
-		fmt.Printf("Use -u or -c\n")
-		os.Exit(1)
+		exit("Use -u user-id or -c card-id")
 	}
 	filepath := *fverify
 	filename := path.Base(filepath)
@@ -111,10 +111,10 @@ func verify() {
 	}
 	if *userID != "0x0" {
 		// verify by useruid
-		GVerify(filename, sha256, *userID, *jverbose)
+		GVerify(*server, filename, sha256, *userID, *jverbose)
 	} else {
 		// verify by cardId
-		CVerify(filename, sha256, *cardID, *jverbose)
+		CVerify(*server, filename, sha256, *cardID, *jverbose)
 	}
 }
 
@@ -126,25 +126,4 @@ func main() {
 	case verifyCmd.FullCommand():
 		verify()
 	}
-	//kingpin.Parse()
-	/*	if file != nil {
-		if *cardID == "0x0" && *userID == "0x0" {
-			fmt.Printf("Use -u or -c\n")
-			os.Exit(1)
-		}
-		filepath := *file
-		filename := path.Base(filepath)
-		sha256, err := common.Sha256File(filepath)
-		if err != nil {
-			fmt.Printf("Cannot compute sha256 on %s\n", filepath)
-			os.Exit(1)
-		}
-		if *userID != "0x0" {
-			// verify by useruid
-			GVerify(filename, sha256, *userID, *jverbose)
-		} else {
-			// verify by cardId
-			CVerify(filename, sha256, *cardID, *jverbose)
-		}
-	}*/
 }

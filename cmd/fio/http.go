@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/fireblock/go-fireblock/common"
 )
@@ -94,11 +95,13 @@ func fioError(id, detail, filename, hash, userid, cardid string, verbose bool) {
 }
 
 // GVerify api global-verify-proof
-func GVerify(filename, hash, useruid string, verbose bool) {
+func GVerify(server, filename, hash, useruid string, verbose bool) {
 	req := GlobalVerifyReq{hash, useruid}
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
-	res, _ := http.Post("https://fireblock.io/api/global-verify-proof", "application/json; charset=utf-8", buffer)
+	url := "https://$#$server$#$/api/global-verify-proof"
+	url = strings.Replace(url, "$#$server$#$", server, 1)
+	res, _ := http.Post(url, "application/json; charset=utf-8", buffer)
 	var response common.JSONRes
 	json.NewDecoder(res.Body).Decode(&response)
 	// check errors in response
@@ -152,11 +155,13 @@ func GVerify(filename, hash, useruid string, verbose bool) {
 }
 
 // CVerify api verify-proof
-func CVerify(filename, hash, cardID string, verbose bool) {
+func CVerify(server, filename, hash, cardID string, verbose bool) {
 	req := CardVerifyReq{hash, cardID}
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
-	res, _ := http.Post("https://fireblock.io/api/verify-proof", "application/json; charset=utf-8", buffer)
+	url := "https://$#$server$#$/api/verify-proof"
+	url = strings.Replace(url, "$#$server$#$", server, 1)
+	res, _ := http.Post(url, "application/json; charset=utf-8", buffer)
 	var response common.JSONRes
 	json.NewDecoder(res.Body).Decode(&response)
 	// check errors in response

@@ -2,13 +2,21 @@
 # coding: utf-8
 """Script to build all supported platforms"""
 import os
+import sys
 import shutil
 from subprocess import call
+
+import argparse
 
 PLATFORMS = ["windows/amd64", "windows/386", "darwin/amd64", "linux/amd64", "linux/386"]
 VERSION = "0.1.4"
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--platform', help='select a platform')
+    args = parser.parse_args()
+    if args.platform:
+        PLATFORMS = [ args.platform ]
     if not os.path.exists("build"):
         os.makedirs("build")
     if not os.path.exists("dist"):

@@ -2,6 +2,7 @@ package common
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -107,7 +108,8 @@ type SignData struct {
 
 // HTTPSign sign
 func HTTPSign(token, hash, keyuid, signature, metadata string) (string, error) {
-	req := SignReq{hash, keyuid, signature, metadata}
+	sig64 := base64.StdEncoding.EncodeToString([]byte(signature))
+	req := SignReq{hash, keyuid, sig64, metadata}
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
 	res, _ := postWithToken(http.DefaultClient, ServerURL+"/api/create-proof", token, buffer)
