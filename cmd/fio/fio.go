@@ -82,8 +82,6 @@ func sign() {
 	} else {
 		exit(fmt.Sprintf("Invalid key format %s\n", ktype))
 	}
-	fmt.Print(privkey)
-	exit("")
 	// sign
 	_, err = common.HTTPSign(*token, sha256, keyuid, signature, metadata)
 	if err != nil {

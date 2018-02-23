@@ -216,7 +216,7 @@ func LoadFioContent(content string) (string, string, string, error) {
 			var k ECDSAJWK
 			err := json.Unmarshal([]byte(txt), &k)
 			if err != nil {
-				return "", "", "", NewFBKError("unknown formtat", InvalidKey)
+				return "", "", "", NewFBKError("unknown format", InvalidKey)
 			}
 			fp, err := ECDSAFingerprint(txt)
 			if err != nil {
