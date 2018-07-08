@@ -29,6 +29,8 @@ var (
 
 	convertCmd = app.Command("convert", "convert a fio to b64u")
 	cconvert   = convertCmd.Arg("file", "File to convert").Required().ExistingFile()
+
+	versionCmd = app.Command("version", "versio of fio (https://fireblock.io)")
 )
 
 func exit(msg string) {
@@ -141,6 +143,11 @@ func convert() {
 	}
 }
 
+func version() {
+	fmt.Printf("fio %s ( info at https://fireblock.io )\n", fireblock.Version)
+	os.Exit(1)
+}
+
 func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(fireblock.Version).Author(fireblock.Author)
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
@@ -150,6 +157,8 @@ func main() {
 		verify()
 	case convertCmd.FullCommand():
 		convert()
+	case versionCmd.FullCommand():
+		version()
 	default:
 		exit("unknown command. Use --help")
 	}
