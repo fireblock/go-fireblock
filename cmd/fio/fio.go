@@ -14,15 +14,14 @@ var (
 	app = kingpin.New("fio", "fireblock.io CLI (verify and sign)")
 
 	jverbose = app.Flag("json", "Output in JSON format").Short('j').Bool()
-	server   = app.Flag("server", "Default to fireblock.io").Short('s').Default("fireblock.io").String()
+	server   = app.Flag("server", "Default to fireblock.io").Short('s').Default("dev.fireblock.io").String()
 
 	verifyCmd = app.Command("verify", "verify a file")
-	cardID    = verifyCmd.Flag("card-id", "Set card id").Short('c').Default("0x0").String()
+	projectID = verifyCmd.Flag("project-id", "Set project id").Short('p').Default("0x0").String()
 	userID    = verifyCmd.Flag("user-id", "Set user id").Short('u').Default("0x0").String()
 	fverify   = verifyCmd.Arg("file", "File to verify.").Required().ExistingFile()
 
 	signCmd    = app.Command("sign", "sign a file")
-	token      = signCmd.Flag("token", "token").Short('t').Default("").String()
 	signKey    = signCmd.Flag("key", "private key in base64url").Short('k').Default("").String()
 	signFio    = signCmd.Flag("fio", "path to fio file").Short('f').ExistingFile()
 	passphrase = signCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
@@ -38,10 +37,6 @@ func exit(msg string) {
 }
 
 func sign() {
-	// check token
-	if token == nil || *token == "" {
-		exit("Missing token! add -t tokenValue")
-	}
 	// Read the private key (signFio or signKey)
 	var keyuid, privkey string
 	var err error
@@ -72,13 +67,8 @@ func sign() {
 	if err != nil {
 		exit(fmt.Sprintf("Cannot read metadata on %s\n", filepath))
 	}
-	// get Card
-	card, err := common.HTTPCard(keyuid, *token)
-	if err != nil {
-		exit("Invalid Token")
-	}
 	// create message
-	message := sha256 + "||" + common.Keccak256(card)
+	message := sha256 + "||" + keyuid
 	// create signature
 	signature := ""
 	ktype := common.B32Type(keyuid)
@@ -96,8 +86,9 @@ func sign() {
 		exit(fmt.Sprintf("Invalid key format %s\n", ktype))
 	}
 	// sign
-	_, err = common.HTTPSign(*token, sha256, keyuid, signature, metadata)
+	_, err = createCertificate(*server, sha256, keyuid, signature, metadata)
 	if err != nil {
+		fmt.Println(err)
 		exit("Can't sign")
 	}
 	filename := path.Base(filepath)
@@ -111,8 +102,8 @@ func verify() {
 		exit("Missing file")
 	}
 
-	if *cardID == "0x0" && *userID == "0x0" {
-		exit("Use -u user-id or -c card-id")
+	if *projectID == "0x0" && *userID == "0x0" {
+		exit("Use -u user-id or -p project-id")
 	}
 	filepath := *fverify
 	filename := path.Base(filepath)
@@ -123,10 +114,10 @@ func verify() {
 	}
 	if *userID != "0x0" {
 		// verify by useruid
-		GVerify(*server, filename, sha256, *userID, *jverbose)
+		uVerify(*server, filename, sha256, *userID, *jverbose)
 	} else {
 		// verify by cardId
-		CVerify(*server, filename, sha256, *cardID, *jverbose)
+		pVerify(*server, filename, sha256, *projectID, *jverbose)
 	}
 }
 

@@ -2,7 +2,6 @@ package common
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -73,7 +72,7 @@ func HTTPCard(keyuid, token string) (string, error) {
 	req := CardReq{keyuid}
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
-	res, _ := postWithToken(http.DefaultClient, ServerURL+"/api/internal/card", token, buffer)
+	res, _ := PostWithToken(http.DefaultClient, ServerURL+"/api/internal/card", token, buffer)
 	if res.StatusCode == 403 {
 		return "", NewFBKError("Invalid token provided", InvalidCard)
 	}
@@ -92,46 +91,8 @@ func HTTPCard(keyuid, token string) (string, error) {
 	return "", NewFBKError("", InvalidCard)
 }
 
-// SignReq http request struct
-type SignReq struct {
-	Hash      string `json:"hash"`
-	Keyuid    string `json:"keyuid"`
-	Signature string `json:"signature"`
-	Metadata  string `json:"metadata"`
-}
-
-// SignData http request struct
-type SignData struct {
-	ID    string `json:"id"`
-	Proof string `json:"proof"`
-}
-
-// HTTPSign sign
-func HTTPSign(token, hash, keyuid, signature, metadata string) (string, error) {
-	sig64 := base64.StdEncoding.EncodeToString([]byte(signature))
-	req := SignReq{hash, keyuid, sig64, metadata}
-	buffer := new(bytes.Buffer)
-	json.NewEncoder(buffer).Encode(req)
-	res, _ := postWithToken(http.DefaultClient, ServerURL+"/api/create-proof", token, buffer)
-	if res.StatusCode == 403 {
-		return "", NewFBKError("Invalid token provided", InvalidSignature)
-	}
-	var response JSONRes
-	json.NewDecoder(res.Body).Decode(&response)
-	// check errors in response
-	if len(response.Errors) > 0 {
-		err := response.Errors[0]
-		return "", NewFBKError(err.ID, InvalidSignature)
-	}
-	var data SignData
-	json.Unmarshal(response.Data, &data)
-	if data.ID == "success" {
-		return data.Proof, nil
-	}
-	return "", NewFBKError("", InvalidSignature)
-}
-
-func postWithToken(c *http.Client, url string, token string, body io.Reader) (resp *http.Response, err error) {
+// PostWithToken post
+func PostWithToken(c *http.Client, url string, token string, body io.Reader) (resp *http.Response, err error) {
 	req, err := http.NewRequest("POST", url, body)
 	if err != nil {
 		return nil, err

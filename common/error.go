@@ -11,6 +11,7 @@ const (
 	InvalidProof          = 303
 	InvalidSignature      = 304
 	InvalidPassphrase     = 305
+	InvalidProject        = 306
 	InvalidFile           = 310
 	InvalidJSON           = 320
 	InvalidEncoding       = 321

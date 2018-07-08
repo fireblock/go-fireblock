@@ -13,21 +13,23 @@ import (
 
 // SuccessReturn success data
 type SuccessReturn struct {
-	Filename string `json:"filename"`
-	Verified bool   `json:"verified"`
-	Hash     string `json:"hash"`
-	UserID   string `json:"user-id"`
-	CardID   string `json:"card-id"`
+	Filename   string `json:"filename"`
+	Verified   bool   `json:"verified"`
+	Hash       string `json:"hash"`
+	UserUID    string `json:"useruid"`
+	ProjectUID string `json:"projectuid"`
+	CardUID    string `json:"carduid"`
 }
 
 // ErrorReturn error return struct
 type ErrorReturn struct {
-	Error    string `json:"error"`
-	Detail   string `json:"detail"`
-	Hash     string `json:"hash"`
-	Filename string `json:"filename"`
-	UserID   string `json:"user-id"`
-	CardID   string `json:"card-id"`
+	Error      string `json:"error"`
+	Detail     string `json:"detail"`
+	Hash       string `json:"hash"`
+	Filename   string `json:"filename"`
+	UserID     string `json:"user-id"`
+	CardID     string `json:"card-id"`
+	ProjectUID string `json:"project-id"`
 }
 
 // GlobalVerifyReq http request struct
@@ -62,14 +64,31 @@ type CardVerifyReq struct {
 	CardID string `json:"cardId"`
 }
 
+// projectVerifyData http request
+type projectVerifyData struct {
+	ID    string            `json:"id"`
+	Value []json.RawMessage `json:"value"`
+}
+
+// ProjectSuccessReturn http request
+type ProjectSuccessReturn struct {
+	KeyUID               string `json:"keyUID"`
+	Metadata             string `json:"metadata"`
+	PKeySignature        string `json:"pkeySignature"`
+	CertificateSignature string `json:"certificateSignature"`
+	Date                 int64  `json:"date"`
+	Pubkey               string `json:"pubkey"`
+	KType                string `json:"ktype"`
+}
+
 func fioSuccess(filename, hash, userid, cardid string, verified, verbose bool) {
 	if verbose {
 		var r SuccessReturn
 		r.Filename = filename
 		r.Verified = verified
 		r.Hash = hash
-		r.UserID = userid
-		r.CardID = cardid
+		r.UserUID = userid
+		r.CardUID = cardid
 		export, _ := json.Marshal(r)
 		fmt.Printf("%s\n", export)
 	} else {
@@ -78,14 +97,14 @@ func fioSuccess(filename, hash, userid, cardid string, verified, verbose bool) {
 	os.Exit(0)
 }
 
-func fioError(id, detail, filename, hash, userid, cardid string, verbose bool) {
+func fioError(id, detail, filename, hash, userid, projectuid string, verbose bool) {
 	if verbose {
 		var r ErrorReturn
 		r.Error = id
 		r.Detail = detail
 		r.Hash = hash
 		r.UserID = userid
-		r.CardID = cardid
+		r.ProjectUID = projectuid
 		export, _ := json.Marshal(r)
 		fmt.Printf("%s\n", export)
 	} else {
@@ -210,4 +229,17 @@ func CVerify(server, filename, hash, cardID string, verbose bool) {
 		}
 	}
 	fioError("Error unknown", "", filename, hash, "", cardID, verbose)
+}
+
+func pVerify(server, filename, hash, projectuid string, verbose bool) {
+	project, err := getProject(server, projectuid)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+	projectVerify(server, filename, hash, project, verbose)
+}
+
+func uVerify(server, filename, hash, useruid string, verbose bool) {
+	userVerify(server, filename, hash, useruid, verbose)
 }

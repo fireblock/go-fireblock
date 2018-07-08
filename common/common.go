@@ -80,6 +80,9 @@ func MetadataFile(filepath string) (string, error) {
 
 // Keccak256 return keccak256 value of a string
 func Keccak256(text string) string {
+	if len(text) == 0 {
+		return "0x0"
+	}
 	hasher := sha3.NewKeccak256()
 	hasher.Write([]byte(text))
 	return "0x" + hex.EncodeToString(hasher.Sum(nil))
