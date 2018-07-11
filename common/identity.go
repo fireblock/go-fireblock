@@ -2,33 +2,36 @@ package common
 
 import (
 	"bytes"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
 )
 
-func extract(txt string) (string, string) {
-	// I am registered on fireblock.io cjFDSTdYZ3pN and use the 0x99090eae43316b2ba65ec52bcd5834a3e07edb2c pgp key (https://fireblock.io)
-	reg, err := regexp.Compile(`I am registered on (Fireblock|fireblock.io) ([=\w]+) and use the (0x\w+)`)
+func extractFrom(txt string) (string, string, string, string) {
+	// I,ellis2323 am cjFDSTdYZ3pN on Fireblock and use the 0x99090eae43316b2ba65ec52bcd5834a3e07edb2c pgp key (https://fireblock.io)
+	reg, err := regexp.Compile(`I,([\w\-]+) am ([\w]+) on Fireblock and use the (0x\w+) (ecdsa|pgp|eth) key`)
 	if err != nil {
-		return "", ""
+		return "", "", "", ""
+	}
+	k := reg.FindStringSubmatch(txt)
+	if len(k) != 5 {
+		return "", "", "", ""
+	}
+	return k[2], k[1], k[4], k[3]
+}
+
+func extractFromHTTPS(txt string) (string, string, string) {
+	// I am rJpoNe2zm on Fireblock and use the 0x99090eae43316b2ba65ec52bcd5834a3e07edb2c pgp key (https://fireblock.io )
+	reg, err := regexp.Compile(`I am ([\w]+) on Fireblock and use the (0x\w+) (ecdsa|pgp|eth) key`)
+	if err != nil {
+		return "", "", ""
 	}
 	k := reg.FindStringSubmatch(txt)
 	if len(k) != 4 {
-		return "", ""
+		return "", "", ""
 	}
-	useruid := k[2]
-	fp := k[3]
-	b64, err2 := base64.StdEncoding.DecodeString(useruid)
-	if err2 != nil {
-		return "", ""
-	}
-	//	if (k === null) { return null }
-	//	let useruid = utilFcts.btoa(res[1])
-	//	return [useruid, res[2]]
-	return string(b64[:]), fp
+	return k[1], k[3], k[2]
 }
 
 func getURLContent(url string) (string, error) {
@@ -60,8 +63,8 @@ func CheckTwitter(url, twUID, useruid, fingerprint string) bool {
 	if err2 != nil {
 		return false
 	}
-	luid, lfp := extract(proof)
-	if luid != useruid || lfp != fingerprint {
+	luid, twuid, _, fp := extractFrom(proof)
+	if luid != useruid || twuid != twUID || fp != fingerprint {
 		return false
 	}
 	return true
@@ -88,32 +91,14 @@ func CheckGithub(url, ghUID, useruid, fingerprint string) bool {
 	if k[1] != ghUID {
 		return false
 	}
-	// gist
-	gistURL := `https://api.github.com/gists/` + k[2]
-	gistInfo, err3 := getURLContent(gistURL)
-	if err3 != nil {
-		return false
-	}
-	// check
-	var data GistData
-	err5 := json.Unmarshal([]byte(gistInfo), &data)
-	if err5 != nil {
-		return false
-	}
-	if data.Owner.Login != ghUID {
-		return false
-	}
-	if len(data.ForkOf) > 0 {
-		return false
-	}
 	// content
 	newURL := `https://gist.githubusercontent.com/` + k[1] + `/` + k[2] + `/raw`
 	proof, err4 := getURLContent(newURL)
 	if err4 != nil {
 		return false
 	}
-	luid, lfp := extract(proof)
-	if luid != useruid || lfp != fingerprint {
+	luid, ghuid, _, fp := extractFrom(proof)
+	if luid != useruid || ghuid != ghUID || fp != fingerprint {
 		return false
 	}
 	return true
@@ -134,8 +119,8 @@ func CheckLinkedin(url, lkUID, useruid, fingerprint string) bool {
 		return false
 	}
 	// check
-	luid, lfp := extract(proof)
-	if luid != useruid || lfp != fingerprint {
+	luid, lkuid, _, fp := extractFrom(proof)
+	if luid != useruid || lkuid != lkUID || fp != fingerprint {
 		return false
 	}
 	return true
@@ -143,28 +128,24 @@ func CheckLinkedin(url, lkUID, useruid, fingerprint string) bool {
 
 // CheckHTTPS check website with a https proof
 func CheckHTTPS(url, dnsUID, useruid, fingerprint string) bool {
-	reg, err2 := regexp.Compile(`^https://` + dnsUID + `/.fireblock/` + fingerprint + `.txt$`)
+	url2 := `^https://` + dnsUID + `/.well-known/` + fingerprint + `.txt$`
+	reg, err2 := regexp.Compile(url2)
 	if err2 != nil {
 		return false
 	}
 	resR := reg.MatchString(url)
 	if !resR {
-		// check the old version
-		reg, err2 = regexp.Compile(`^https://` + dnsUID + `/.fireblock/` + fingerprint + `$`)
-		if err2 != nil {
-			return false
-		}
-		resR := reg.MatchString(url)
-		if !resR {
-			return false
-		}
+		return false
 	}
 	proof, err := getURLContent(url)
 	if err != nil {
 		return false
 	}
-	luid, lfp := extract(proof)
-	if luid != useruid || lfp != fingerprint {
+	luid, ktype, fp := extractFromHTTPS(proof)
+	if ktype != "eth" && ktype != "ecdsa" && ktype != "pgp" {
+		return false
+	}
+	if luid != useruid || fp != fingerprint {
 		return false
 	}
 	return true
