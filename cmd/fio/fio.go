@@ -122,7 +122,7 @@ func verify() {
 
 func version() {
 	fmt.Printf("fio %s ( info at https://fireblock.io )\n", fireblock.Version)
-	os.Exit(1)
+	os.Exit(0)
 }
 
 func main() {

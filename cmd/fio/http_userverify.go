@@ -41,7 +41,7 @@ type UserVerifyReq struct {
 	UserUID string `json:"useruuid"`
 }
 
-func userVerify(server, filename, hash string, useruid string, verbose bool) (project2 *Project, err error) {
+func userVerify(server, filename, hash string, useruid string, verbose bool) {
 	// json inputs
 	req := UserVerifyReq{hash, useruid}
 	buffer := new(bytes.Buffer)
@@ -51,25 +51,31 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) (pr
 	url = strings.Replace(url, "$#$server$#$", server, 1)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	if err != nil {
-		return nil, common.NewFBKError(fmt.Sprintf("http error %s", url), common.NetworkError)
+		verifyError(nil, common.NetworkError, fmt.Sprintf("http error %s", url), verbose)
 	}
 	// analyze result
 	var response UserVerifyResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		return nil, common.NewFBKError(fmt.Sprintf("http response error %s", url), common.NetworkError)
+		verifyError(nil, common.NetworkError, fmt.Sprintf("http response error %s", url), verbose)
 	}
 	// check result
 	if len(response.Errors) > 0 {
-		return nil, common.NewFBKError(fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), common.InvalidProject)
+		verifyError(nil, common.InvalidProject, fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), verbose)
 	}
 	// check certificate signature
 	validity := false
 	values := response.Data.Value
+	var project *Project
 	for _, value := range values {
-		project, err := getProject(server, value.PKeyUID)
+		var err error
+		project, err = getProject(server, value.PKeyUID)
 		if err != nil {
-			fmt.Println(err)
+			if err, ok := err.(*common.FBKError); ok {
+				verifyError(nil, err.Type(), err.Error(), verbose)
+				os.Exit(1)
+			}
+			verifyError(nil, common.UnknownError, err.Error(), verbose)
 			os.Exit(1)
 		}
 		// check certificate
@@ -104,9 +110,10 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) (pr
 		break
 	}
 	if validity {
-		fmt.Println("VALID")
+		verifySuccess(project, filename, hash, verbose)
+		os.Exit(0)
 	} else {
-		fmt.Println("INVALID")
+		verifyError(project, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
+		os.Exit(1)
 	}
-	return nil, nil
 }

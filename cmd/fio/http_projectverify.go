@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/fireblock/go-fireblock/common"
@@ -39,7 +40,7 @@ type ProjectVerifyReq struct {
 	ProjectUID string `json:"projectuid"`
 }
 
-func projectVerify(server, filename, hash string, project *Project, verbose bool) (project2 *Project, err error) {
+func projectVerify(server, filename, hash string, project *Project, verbose bool) {
 	// json inputs
 	req := ProjectVerifyReq{hash, project.ProjectUID}
 	buffer := new(bytes.Buffer)
@@ -49,17 +50,19 @@ func projectVerify(server, filename, hash string, project *Project, verbose bool
 	url = strings.Replace(url, "$#$server$#$", server, 1)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	if err != nil {
-		return nil, common.NewFBKError(fmt.Sprintf("http error %s", url), common.NetworkError)
+		verifyError(project, common.NetworkError, fmt.Sprintf("http error %s", url), verbose)
+		return
 	}
 	// analyze result
 	var response ProjectVerifyResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		return nil, common.NewFBKError(fmt.Sprintf("http response error %s", url), common.NetworkError)
+		verifyError(project, common.NetworkError, fmt.Sprintf("http response error %s", url), verbose)
+		return
 	}
 	// check result
 	if len(response.Errors) > 0 {
-		return nil, common.NewFBKError(fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), common.InvalidProject)
+		verifyError(project, common.InvalidProject, fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), verbose)
 	}
 	// check certificate signature
 	validity := false
@@ -97,9 +100,10 @@ func projectVerify(server, filename, hash string, project *Project, verbose bool
 		break
 	}
 	if validity {
-		fmt.Println("VALID")
+		verifySuccess(project, filename, hash, verbose)
+		os.Exit(0)
 	} else {
-		fmt.Println("INVALID")
+		verifyError(project, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
+		os.Exit(1)
 	}
-	return nil, nil
 }
