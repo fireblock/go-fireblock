@@ -27,9 +27,6 @@ var (
 	passphrase = signCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
 	fsign      = signCmd.Arg("file", "File to sign.").Required().ExistingFile()
 
-	convertCmd = app.Command("convert", "convert a fio to b64u")
-	cconvert   = convertCmd.Arg("file", "File to convert").Required().ExistingFile()
-
 	versionCmd = app.Command("version", "versio of fio (https://fireblock.io)")
 )
 
@@ -123,26 +120,6 @@ func verify() {
 	}
 }
 
-func convert() {
-	if cconvert == nil {
-		exit("Missing file")
-	}
-	keyuid, privkey, _, err := common.LoadFioFile(*cconvert)
-	if err != nil {
-		exit("invalid fio file")
-	}
-	ktype := common.B32Type(keyuid)
-	if ktype == "pgp" {
-		res := common.PGPExport(privkey)
-		fmt.Println(res)
-	} else if ktype == "ecdsa" {
-		res, _ := common.ECDSAExport(privkey)
-		fmt.Println(res)
-	} else {
-		exit("unknown key format")
-	}
-}
-
 func version() {
 	fmt.Printf("fio %s ( info at https://fireblock.io )\n", fireblock.Version)
 	os.Exit(1)
@@ -155,8 +132,6 @@ func main() {
 		sign()
 	case verifyCmd.FullCommand():
 		verify()
-	case convertCmd.FullCommand():
-		convert()
 	case versionCmd.FullCommand():
 		version()
 	default:
