@@ -51,16 +51,13 @@
     "crypto/randentropy",
     "crypto/secp256k1",
     "crypto/sha3",
-    "ethclient",
-    "ethdb",
     "event",
     "log",
-    "metrics",
     "params",
     "rlp",
-    "rpc",
     "trie"
   ]
+  revision = ""
   version = "v1.7.3"
 
 [[projects]]
@@ -68,12 +65,6 @@
   packages = ["."]
   revision = "259ab82a6cad3992b4e21ff5cac294ccb06474bc"
   version = "v1.7.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/golang/snappy"
-  packages = ["."]
-  revision = "553a641470496b2327abcac10b36396bd98e45c9"
 
 [[projects]]
   name = "github.com/pborman/uuid"
@@ -90,10 +81,7 @@
 [[projects]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
-  packages = [
-    ".",
-    "exp"
-  ]
+  packages = ["."]
   revision = "8732c616f52954686704c8645fe1a9d59e9df7c1"
 
 [[projects]]
@@ -103,35 +91,10 @@
   revision = "c31e5f2cb22b3e4ef3f882f413847669bf2652b9"
 
 [[projects]]
-  name = "github.com/rs/cors"
-  packages = ["."]
-  revision = "7af7a1e09ba336d2ea14b1ce73bf693c6837dbf6"
-  version = "v1.2"
-
-[[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
   revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
   version = "v1.2.1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/syndtr/goleveldb"
-  packages = [
-    "leveldb",
-    "leveldb/cache",
-    "leveldb/comparer",
-    "leveldb/errors",
-    "leveldb/filter",
-    "leveldb/iterator",
-    "leveldb/journal",
-    "leveldb/memdb",
-    "leveldb/opt",
-    "leveldb/storage",
-    "leveldb/table",
-    "leveldb/util"
-  ]
-  revision = "211f780988068502fe874c44dae530528ebd840f"
 
 [[projects]]
   branch = "master"
@@ -149,12 +112,6 @@
     "scrypt"
   ]
   revision = "650f4a345ab4e5b245a3034b110ebc7299e68186"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/net"
-  packages = ["websocket"]
-  revision = "cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb"
 
 [[projects]]
   branch = "master"
@@ -189,15 +146,9 @@
   packages = ["collections/prque"]
   revision = "8dcd6a7f4951f6ff3ee9cbb919a06d8925822e57"
 
-[[projects]]
-  branch = "v2"
-  name = "gopkg.in/natefinch/npipe.v2"
-  packages = ["."]
-  revision = "c1b8fa8bdccecb0b8db834ee0b92fdbcfa606dd6"
-
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "0bb50a3f24f9a67f74cb932c26f0e188715d0223025090a0de3bac8f306db3de"
+  inputs-digest = "9929b0e9d3d4aa02c62f6d97287fd34d7df12de948a0c8a9754d861026ac52dd"
   solver-name = "gps-cdcl"
   solver-version = 1
