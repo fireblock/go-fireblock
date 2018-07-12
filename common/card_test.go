@@ -29,17 +29,17 @@ func TestCheckCardError(t *testing.T) {
 	assert.NotNil(t, err, "error")
 }
 
-func TestCheckAllCard1(t *testing.T) {
+/* func TestCheckAllCard1(t *testing.T) {
 	card := `[
 { "uid": "rJpoNe2zm", "provider": "fireblock", "date": "20180105" },
 { "uid": "ellis2424", "provider": "github", "proof": "https://gist.github.com/ellis2424/9397888371ed7b32d29d9e870cefd283", "date": "20180116" },
-{ "uid": "ellis23232323", "provider": "twitter", "proof": "https://twitter.com/ellis23232323/status/1016664114305921027", "date": "20180116" }, 
+{ "uid": "ellis23232323", "provider": "twitter", "proof": "https://twitter.com/ellis23232323/status/1016664114305921027", "date": "20180116" },
 { "uid": "dev.fireblock.io", "provider": "https", "proof": "https://dev.fireblock.io/.well-known/0x99090eae43316b2ba65ec52bcd5834a3e07edb2c.txt", "date": "20180116" },
 { "uid": "0x99090eae43316b2ba65ec52bcd5834a3e07edb2c", "provider": "pgp", "date": "20180116" }
 ]`
 	_, _, _, err := CheckAllCard(card, "0x4fd0a4896f9521a87e58d8c4ba45340b6d0aa19f5f6f3599a20e4f608f324592")
 	assert.Equal(t, err, nil, "")
-}
+} */
 
 func TestCheckAllCardError(t *testing.T) {
 	_, _, _, err := CheckAllCard("{ invalid json", "0xd8d94a286b1012b7612c2f2f49c843c913ae3c18ec7265fd58814a3197ab76c7")
