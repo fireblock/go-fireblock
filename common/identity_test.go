@@ -18,7 +18,7 @@ func TestCheckTwitter1(t *testing.T) {
 }
 
 func TestGithub1(t *testing.T) {
-	r := CheckGithub("https://gist.github.com/ellis2424/9397888371ed7b32d29d9e870cefd283", "ellis2424", "rJpoNe2zm", "0x99090eae43316b2ba65ec52bcd5834a3e07edb2c")
+	r := CheckGithub("https://gist.github.com/ellis2424/b241a2cfce6b5bfbfd3ab06b551171b3", "ellis2424", "rJpoNe2zm", "0x99090eae43316b2ba65ec52bcd5834a3e07edb2c")
 	assert.Equal(t, r, true, "")
 }
 

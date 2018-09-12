@@ -110,7 +110,7 @@ func CheckLinkedin(url, lkUID, useruid, fingerprint string) bool {
 	if err != nil {
 		return false
 	}
-	reg, err2 := regexp.Compile(`href="https://www.linkedin.com/in/` + lkUID + `"`)
+	reg, err2 := regexp.Compile(`https://\w+.linkedin.com/in/` + lkUID)
 	if err2 != nil {
 		return false
 	}
