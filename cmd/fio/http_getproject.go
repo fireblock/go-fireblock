@@ -57,7 +57,7 @@ type Project struct {
 
 func getProject(server, projectuid string) (project *Project, err error) {
 	// http request
-	url := "https://$#$server$#$/api/project?projectuid=" + projectuid + "&checkcard=false"
+	url := "$#$server$#$/api/project?projectuid=" + projectuid + "&checkcard=false"
 	url = strings.Replace(url, "$#$server$#$", server, 1)
 	res, err := http.Get(url)
 	if err != nil {

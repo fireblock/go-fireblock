@@ -38,7 +38,7 @@ func createCertificate(server, hash, keyuid, signature, metadata string) (string
 	req := SignReq{hash, keyuid, sig64, meta64}
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
-	url := "https://$#$server$#$/api/create-certificate"
+	url := "$#$server$#$/api/create-certificate"
 	url = strings.Replace(url, "$#$server$#$", server, 1)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	if err != nil {

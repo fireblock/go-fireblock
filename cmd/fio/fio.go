@@ -14,7 +14,7 @@ var (
 	app = kingpin.New("fio", "fireblock.io CLI (verify and sign)")
 
 	jverbose = app.Flag("json", "Output in JSON format").Short('j').Bool()
-	server   = app.Flag("server", "Default to fireblock.io").Short('s').Default("dev.fireblock.io").String()
+	server   = app.Flag("server", "Default to https://fireblock.io").Short('s').Default("https://fireblock.io").String() // dev.fireblock.io
 
 	verifyCmd = app.Command("verify", "verify a file")
 	projectID = verifyCmd.Flag("project-id", "Set project id").Short('p').Default("0x0").String()

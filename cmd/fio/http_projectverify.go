@@ -46,7 +46,7 @@ func projectVerify(server, filename, hash string, project *Project, verbose bool
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
 	// http request
-	url := "https://$#$server$#$/api//verify-by-project"
+	url := "$#$server$#$/api//verify-by-project"
 	url = strings.Replace(url, "$#$server$#$", server, 1)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	if err != nil {

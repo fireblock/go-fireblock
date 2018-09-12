@@ -47,7 +47,7 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(req)
 	// http request
-	url := "https://$#$server$#$/api/verify-by-user"
+	url := "$#$server$#$/api/verify-by-user"
 	url = strings.Replace(url, "$#$server$#$", server, 1)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	if err != nil {
