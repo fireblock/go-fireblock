@@ -31,13 +31,13 @@ type VerifyErrorReturn struct {
 	ProjectUID string `json:"projectuid,omitempty"`
 }
 
-func verifyError(project *Project, code int, message string, verbose bool) {
+func verifyError(projectInfo ProjectInfo, cardInfo CardInfo, code int, message string, verbose bool) {
 	if verbose {
 		var r VerifyErrorReturn
 		r.Error = strconv.Itoa(code)
 		r.Detail = message
-		if project != nil {
-			r.ProjectUID = project.ProjectUID
+		if projectInfo.Status != "ok" {
+			r.ProjectUID = projectInfo.UID
 		}
 		export, _ := json.Marshal(r)
 		fmt.Printf("%s\n", export)
@@ -47,15 +47,15 @@ func verifyError(project *Project, code int, message string, verbose bool) {
 	os.Exit(1)
 }
 
-func verifySuccess(project *Project, filename, hash string, verbose bool) {
+func verifySuccess(projectInfo ProjectInfo, cardInfo CardInfo, filename, hash string, verbose bool) {
 	if verbose {
 		var r VerifySuccessReturn
 		r.Verified = true
 		r.Filename = filename
 		r.Hash = hash
-		r.ProjectUID = project.ProjectUID
-		r.CardUID = project.CardUID
-		r.Card = project.Card
+		r.ProjectUID = projectInfo.UID
+		r.CardUID = cardInfo.UID
+		r.Card = cardInfo.Txt
 		export, _ := json.Marshal(r)
 		fmt.Printf("%s\n", export)
 	} else {
@@ -65,16 +65,16 @@ func verifySuccess(project *Project, filename, hash string, verbose bool) {
 }
 
 func pVerify(server, filename, hash, projectuid string, verbose bool) {
-	project, err := getProject(server, projectuid)
+	projectInfo, cardInfo, err := getProject(server, projectuid)
 	if err != nil {
 		if err, ok := err.(*common.FBKError); ok {
-			verifyError(nil, err.Type(), err.Error(), verbose)
+			verifyError(projectInfo, cardInfo, err.Type(), err.Error(), verbose)
 			os.Exit(1)
 		}
-		verifyError(nil, common.UnknownError, err.Error(), verbose)
+		verifyError(projectInfo, cardInfo, common.UnknownError, err.Error(), verbose)
 		os.Exit(1)
 	}
-	projectVerify(server, filename, hash, project, verbose)
+	projectVerify(server, filename, hash, projectInfo, cardInfo, verbose)
 }
 
 func uVerify(server, filename, hash, useruid string, verbose bool) {

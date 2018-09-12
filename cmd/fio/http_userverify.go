@@ -51,31 +51,32 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 	url = strings.Replace(url, "$#$server$#$", server, 1)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	if err != nil {
-		verifyError(nil, common.NetworkError, fmt.Sprintf("http error %s", url), verbose)
+		verifyError(ProjectInfo{}, CardInfo{}, common.NetworkError, fmt.Sprintf("http error %s", url), verbose)
 	}
 	// analyze result
 	var response UserVerifyResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		verifyError(nil, common.NetworkError, fmt.Sprintf("http response error %s", url), verbose)
+		verifyError(ProjectInfo{}, CardInfo{}, common.NetworkError, fmt.Sprintf("http response error %s", url), verbose)
 	}
 	// check result
 	if len(response.Errors) > 0 {
-		verifyError(nil, common.InvalidProject, fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), verbose)
+		verifyError(ProjectInfo{}, CardInfo{}, common.InvalidProject, fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), verbose)
 	}
 	// check certificate signature
 	validity := false
 	values := response.Data.Value
-	var project *Project
+	var projectInfo ProjectInfo
+	var cardInfo CardInfo
 	for _, value := range values {
 		var err error
-		project, err = getProject(server, value.PKeyUID)
+		projectInfo, cardInfo, err = getProject(server, value.PKeyUID)
 		if err != nil {
 			if err, ok := err.(*common.FBKError); ok {
-				verifyError(nil, err.Type(), err.Error(), verbose)
+				verifyError(ProjectInfo{}, CardInfo{}, err.Type(), err.Error(), verbose)
 				os.Exit(1)
 			}
-			verifyError(nil, common.UnknownError, err.Error(), verbose)
+			verifyError(ProjectInfo{}, CardInfo{}, common.UnknownError, err.Error(), verbose)
 			os.Exit(1)
 		}
 		// check certificate
@@ -99,7 +100,7 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 		}
 		// check delegation
 		message2 := fmt.Sprintf("approved key is %s at %d", value.KeyUID, value.Date)
-		ck, err := common.ECDSAVerify(project.Pubkey, message2, value.PkeySignature)
+		ck, err := common.ECDSAVerify(projectInfo.Pubkey, message2, value.PkeySignature)
 		if err != nil {
 			continue
 		}
@@ -110,10 +111,10 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 		break
 	}
 	if validity {
-		verifySuccess(project, filename, hash, verbose)
+		verifySuccess(projectInfo, cardInfo, filename, hash, verbose)
 		os.Exit(0)
 	} else {
-		verifyError(project, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
+		verifyError(projectInfo, cardInfo, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
 		os.Exit(1)
 	}
 }
