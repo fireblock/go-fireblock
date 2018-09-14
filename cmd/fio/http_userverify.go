@@ -1,26 +1,19 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
-	"strings"
 
 	"github.com/fireblock/go-fireblock/common"
 )
 
 // UserVerifyValue http request
 type UserVerifyValue struct {
-	PKeyUID              string `json:"pkeyUID"`
-	KeyUID               string `json:"keyUID"`
-	Metadata             string `json:"metadata"`
-	PkeySignature        string `json:"pkeySignature"`
-	CertificateSignature string `json:"certificateSignature"`
-	Date                 int64  `json:"date"`
-	Pubkey               string `json:"pubkey"`
-	KType                string `json:"ktype"`
+	PKey        KeyInfo         `json:"pkey"`
+	Card        CardInfo        `json:"card"`
+	Key         KeyInfo         `json:"key"`
+	Certificate CertificateInfo `json:"certificate"`
 }
 
 // UserVerifyValueReturn http request
@@ -42,79 +35,102 @@ type UserVerifyReq struct {
 }
 
 func userVerify(server, filename, hash string, useruid string, verbose bool) {
-	// json inputs
-	req := UserVerifyReq{hash, useruid}
-	buffer := new(bytes.Buffer)
-	json.NewEncoder(buffer).Encode(req)
-	// http request
-	url := "$#$server$#$/api/verify-by-user"
-	url = strings.Replace(url, "$#$server$#$", server, 1)
-	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
+	// create url request
+	SetServerURL(server)
+	url := CreateURL("/api/verify-by-user")
+
+	// json inputs + request
+	sha3uuid := common.Keccak256(useruid)
+	req := UserVerifyReq{hash, sha3uuid}
+	res, err := Post(url, req)
 	if err != nil {
-		verifyError(ProjectInfo{}, CardInfo{}, common.NetworkError, fmt.Sprintf("http error %s", url), verbose)
+		fbkError(err, verbose)
+		os.Exit(1)
 	}
-	// analyze result
-	var response UserVerifyResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
+
+	// parse output
+	var response UserVerifyValueReturn
+	err = json.Unmarshal(res, &response)
 	if err != nil {
-		verifyError(ProjectInfo{}, CardInfo{}, common.NetworkError, fmt.Sprintf("http response error %s", url), verbose)
+		j, _ := json.Marshal(&res)
+		fmt.Print(string(j))
+		os.Exit(1)
 	}
-	// check result
-	if len(response.Errors) > 0 {
-		verifyError(ProjectInfo{}, CardInfo{}, common.InvalidProject, fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), verbose)
-	}
+
 	// check certificate signature
+	var pkey, key KeyInfo
+	var card CardInfo
+	var certificate CertificateInfo
 	validity := false
-	values := response.Data.Value
-	var projectInfo ProjectInfo
-	var cardInfo CardInfo
+	values := response.Value
 	for _, value := range values {
-		var err error
-		projectInfo, cardInfo, err = getProject(server, value.PKeyUID)
-		if err != nil {
-			if err, ok := err.(*common.FBKError); ok {
-				verifyError(ProjectInfo{}, CardInfo{}, err.Type(), err.Error(), verbose)
-				os.Exit(1)
+
+		pkey = value.PKey
+		key = value.Key
+		card = value.Card
+		certificate = value.Certificate
+
+		// pkey state
+		if (pkey.State & 15) != 3 {
+			continue
+		}
+
+		// check signature + state of the card
+		if card.Txt != "" {
+			msg := fmt.Sprintf("register card %s at %d", card.UID, card.Date)
+			ck, err := common.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
+			if err != nil || !ck {
+				continue
 			}
-			verifyError(ProjectInfo{}, CardInfo{}, common.UnknownError, err.Error(), verbose)
-			os.Exit(1)
+			// check card
+			_, err3 := common.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
+			if err3 != nil {
+				continue
+			}
+		}
+
+		// key state
+		if (key.State & 7) != 3 {
+			continue
 		}
 		// check certificate
-		message := fmt.Sprintf("%s||%s", hash, value.KeyUID)
-		if value.KType == "ecdsa" {
-			ck, err := common.ECDSAVerify(value.Pubkey, message, value.CertificateSignature)
-			if err != nil {
-				continue
-			}
-			if !ck {
-				continue
-			}
-		} else if value.KType == "pgp" {
-			ck, err := common.PGPVerify(value.Pubkey, message, value.CertificateSignature)
-			if err != nil {
-				continue
-			}
-			if !ck {
-				continue
-			}
-		}
-		// check delegation
-		message2 := fmt.Sprintf("approved key is %s at %d", value.KeyUID, value.Date)
-		ck, err := common.ECDSAVerify(projectInfo.Pubkey, message2, value.PkeySignature)
+		message := fmt.Sprintf("%s||%s", hash, key.KeyUID)
+		ck, err := common.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
 		if err != nil {
 			continue
 		}
 		if !ck {
 			continue
 		}
+		// check delegation
+		message2 := fmt.Sprintf("approved key is %s at %d", key.KeyUID, key.Date)
+		ck2, err2 := common.VerifySignature("ecdsa", pkey.Pubkey, message2, key.Signature)
+		if err2 != nil {
+			continue
+		}
+		if !ck2 {
+			continue
+		}
+		// check metadataSignature
+		if certificate.MetadataSignature != "" {
+			metadataSID := common.Keccak256(certificate.Metadata)
+			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, hash, key.KeyUID)
+			ck3, err3 := common.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
+			if err3 != nil {
+				continue
+			}
+			if !ck3 {
+				continue
+			}
+		}
 		validity = true
 		break
 	}
 	if validity {
-		verifySuccess(projectInfo, cardInfo, filename, hash, verbose)
+		verifySuccess(pkey, card, filename, hash, verbose)
 		os.Exit(0)
 	} else {
-		verifyError(projectInfo, cardInfo, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
+		verifyError(pkey, card, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
 		os.Exit(1)
 	}
 }

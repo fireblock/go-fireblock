@@ -15,6 +15,7 @@ const (
 	InvalidFile           = 310
 	InvalidJSON           = 320
 	InvalidEncoding       = 321
+	APIError              = 350
 
 	NetworkError    = 400
 	NetworkError404 = 404

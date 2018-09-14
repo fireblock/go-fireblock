@@ -105,6 +105,7 @@ func TestMetadata(t *testing.T) {
 	assert.Equal(t, e.Type(), InvalidFile, "no error")
 }
 
+/*
 func TestLoadFioContentPGPPubKey(t *testing.T) {
 	keyuid, _, _, _ := LoadFioContent(fireblockPubKey)
 	assert.Equal(t, "0x10000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c", keyuid, "no error")
@@ -124,3 +125,4 @@ func TestLoadFioFileECDSAPubKey2(t *testing.T) {
 	_, _, _, err := LoadFioFile("testdata/jwk____.fio")
 	assert.NotNil(t, err, "no file found")
 }
+*/

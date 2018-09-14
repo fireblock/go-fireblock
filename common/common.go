@@ -74,71 +74,38 @@ type ECDSAFIO struct {
 	Keys []json.RawMessage `json:"keys"`
 }
 
+type KeyFIO struct {
+	Pubkey  string `json:"pubkey"`
+	Privkey string `json:"privkey"`
+	KeyUID  string `json:"keyuid"`
+	KType   string `json:"ktype"`
+}
+
 // LoadFioContent load a fio content
-func LoadFioContent(content string) (string, string, string, error) {
-	// check if PGP
-	regexPriv, _ := regexp.Compile(regexPGPPrivKey)
-	regexPub, _ := regexp.Compile(regexPGPPubKey)
-	priv := regexPriv.FindStringSubmatch(content)
-	pub := regexPub.FindStringSubmatch(content)
-	if len(priv) > 0 || (len(pub) > 0) {
-		var err error
-		fp := ""
-		privkey := ""
-		pubkey := ""
-		if len(priv) > 0 {
-			privkey = priv[1]
-			fp, err = PGPFingerprint(privkey)
-			if err != nil {
-				return "", "", "", NewFBKError("no fingerprint", InvalidKey)
-			}
-		}
-		if len(pub) > 0 {
-			pubkey = pub[1]
-			fp, err = PGPFingerprint(pubkey)
-			if err != nil {
-				return "", "", "", NewFBKError("no fingerprint", InvalidKey)
-			}
-		}
-		keyuid := PGPToB32(fp)
-		return keyuid, privkey, pubkey, nil
+func LoadFioContent(content string) (ktype, keyuid, privkey, pubkey string, err error) {
+	keys := make([]KeyFIO, 0)
+	err = json.Unmarshal([]byte(content), &keys)
+	if err != nil {
+		j, _ := json.Marshal(&keys)
+		fmt.Print(string(j))
+		return "", "", "", "", NewFBKError("invalid format file", InvalidKey)
 	}
-	// check if JWK ECDSA
-	var data ECDSAFIO
-	err := json.Unmarshal([]byte(content), &data)
-	if err == nil {
-		keyuid := ""
-		privkey := ""
-		pubkey := ""
-		for _, key := range data.Keys {
-			txt := string(key)
-			var k ECDSAJWK
-			err := json.Unmarshal([]byte(txt), &k)
-			if err != nil {
-				return "", "", "", NewFBKError("unknown format", InvalidKey)
-			}
-			fp, err := ECDSAFingerprint(txt)
-			if err != nil {
-				return "", "", "", NewFBKError("no fingerprint", InvalidKey)
-			}
-			if k.D == "" {
-				pubkey = txt
-			} else {
-				privkey = txt
-			}
-			keyuid = ECDSAToB32(fp)
+	// try to load the first one
+	for _, key := range keys {
+		if key.KType != "pgp" && key.KType != "ecdsa" {
+			return "", "", "", "", NewFBKError("invalid ktype", InvalidKey)
 		}
-		return keyuid, privkey, pubkey, nil
+		return key.KType, key.KeyUID, key.Privkey, key.Pubkey, nil
 	}
-	return "", "", "", NewFBKError("invalid format", InvalidKey)
+	return "", "", "", "", NewFBKError("no key in fio file", InvalidKey)
 }
 
 // LoadFioFile load a fio file
-func LoadFioFile(filepath string) (string, string, string, error) {
+func LoadFioFile(filepath string) (string, string, string, string, error) {
 	content, err := ioutil.ReadFile(filepath)
 	if err != nil {
 		msg := fmt.Sprintf(`No file at %s`, filepath)
-		return "", "", "", NewFBKError(msg, InvalidFile)
+		return "", "", "", "", NewFBKError(msg, InvalidFile)
 	}
 	return LoadFioContent(string(content))
 }
@@ -172,4 +139,14 @@ func LoadB64U(data string) (string, string, error) {
 		return "", "", NewFBKError("no fingerprint", InvalidKey)
 	}
 	return fp, string(content), nil
+}
+
+func VerifySignature(ktype, pubkey, message, signature string) (bool, error) {
+	if ktype == "ecdsa" {
+		return ECDSAVerify(pubkey, message, signature)
+	} else if ktype == "pgp" {
+		return PGPVerify(pubkey, message, signature)
+	}
+	msg := fmt.Sprintf("Invalid key type %s", ktype)
+	return false, NewFBKError(msg, InvalidKey)
 }

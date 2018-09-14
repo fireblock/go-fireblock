@@ -18,7 +18,7 @@ var (
 
 	verifyCmd = app.Command("verify", "verify a file")
 	projectID = verifyCmd.Flag("project-id", "Set project id").Short('p').Default("0x0").String()
-	userID    = verifyCmd.Flag("user-id", "Set user id").Short('u').Default("0x0").String()
+	userID    = verifyCmd.Flag("user-id", "Set user id").Short('u').Default("").String()
 	fverify   = verifyCmd.Arg("file", "File to verify.").Required().ExistingFile()
 
 	signCmd    = app.Command("sign", "sign a file")
@@ -45,7 +45,7 @@ func sign() {
 	} else if signFio != nil && len(*signFio) > 1 {
 		keypath := *signFio
 		// load fio file
-		keyuid, privkey, _, err = common.LoadFioFile(keypath)
+		_, keyuid, privkey, _, err = common.LoadFioFile(keypath)
 		if err != nil {
 			exit("Invalid fio file")
 		}
@@ -85,7 +85,7 @@ func sign() {
 		exit(fmt.Sprintf("Invalid key format %s\n", ktype))
 	}
 	// sign
-	_, err = createCertificate(*server, sha256, keyuid, signature, metadata)
+	_, err = createCertificate(*server, sha256, ktype, keyuid, signature, metadata)
 	if err != nil {
 		fmt.Println(err)
 		exit("Can't sign")
@@ -101,7 +101,7 @@ func verify() {
 		exit("Missing file")
 	}
 
-	if *projectID == "0x0" && *userID == "0x0" {
+	if *projectID == "0x0" && *userID == "" {
 		exit("Use -u user-id or -p project-id")
 	}
 	filepath := *fverify
@@ -111,12 +111,12 @@ func verify() {
 		fmt.Printf("Cannot compute sha256 on %s\n", filepath)
 		os.Exit(1)
 	}
-	if *userID != "0x0" {
+	if *userID != "" {
 		// verify by useruid
-		uVerify(*server, filename, sha256, *userID, *jverbose)
+		userVerify(*server, filename, sha256, *userID, *jverbose)
 	} else {
 		// verify by cardId
-		pVerify(*server, filename, sha256, *projectID, *jverbose)
+		projectVerify(*server, filename, sha256, *projectID, *jverbose)
 	}
 }
 

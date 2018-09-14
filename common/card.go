@@ -227,7 +227,7 @@ func errorVC(msg string) (*ProviderStates, error) {
 }
 
 // status, provider states, error
-func VerifyCard(card, pkeyUID, pktype, suuid string) (pstates *ProviderStates, err error) {
+func VerifyCard(card, pkeyUID, pktype string) (pstates *ProviderStates, err error) {
 	// decode json
 	var providers []ProviderData
 	err = json.Unmarshal([]byte(card), &providers)
@@ -241,8 +241,7 @@ func VerifyCard(card, pkeyUID, pktype, suuid string) (pstates *ProviderStates, e
 		return errorVC(`missing fireblock provider`)
 	}
 	useruid := fireblockCE.UID
-	lsuuid := Keccak256(useruid)
-	if len(fireblockCE.UID) < 4 || len(fireblockCE.UID) > 12 || lsuuid != suuid {
+	if len(fireblockCE.UID) < 4 || len(fireblockCE.UID) > 12 {
 		msg := fmt.Sprintf(`invalid fireblock provider: %s`, fireblockCE.UID)
 		return errorVC(msg)
 	}

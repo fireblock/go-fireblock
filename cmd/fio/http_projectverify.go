@@ -1,37 +1,47 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"os"
-	"strings"
 
 	"github.com/fireblock/go-fireblock/common"
 )
 
+func fbkError(err error, verbose bool) {
+	e := err.(*common.FBKError)
+	if e != nil {
+		fmt.Printf("code: %d detail: %s", e.Type(), e.Error())
+		os.Exit(1)
+	}
+	fmt.Printf(err.Error())
+	os.Exit(1)
+}
+
+func convertPS2CIP(ps common.ProviderState) (cip CardInfoProvider) {
+	cip.UID = ps.UID
+	cip.Status = ps.Status
+	cip.Proof = ps.Proof
+	return cip
+}
+
+type ProjectVerifyResult struct {
+	Key         KeyInfo         `json:"key"`
+	Certificate CertificateInfo `json:"certificate"`
+}
+
 // ProjectVerifyValue http request
+// keyUID, metadata, pkeySignature, certificateSignature, date, cdate, pkeystate: pks, ppubkey, keystate: ks, pubkey, ktype, metadataSignature
 type ProjectVerifyValue struct {
-	KeyUID               string `json:"keyUID"`
-	Metadata             string `json:"metadata"`
-	PkeySignature        string `json:"pkeySignature"`
-	CertificateSignature string `json:"certificateSignature"`
-	Date                 int64  `json:"date"`
-	Pubkey               string `json:"pubkey"`
-	KType                string `json:"ktype"`
+	Results []ProjectVerifyResult `json:"results"`
+	Card    CardInfo              `json:"card"`
+	PKey    KeyInfo               `json:"pkey"`
 }
 
 // ProjectVerifyValueReturn http request
 type ProjectVerifyValueReturn struct {
-	Value []ProjectVerifyValue `json:"value"`
-}
-
-// ProjectVerifyResponse http request
-type ProjectVerifyResponse struct {
-	ID     string                   `json:"id"`
-	Errors []common.ErrorRes        `json:"errors,omitempty"`
-	Data   ProjectVerifyValueReturn `json:"data"`
+	Value ProjectVerifyValue `json:"value"`
+	ID    string             `json:"id"`
 }
 
 // ProjectVerifyReq http request
@@ -40,70 +50,98 @@ type ProjectVerifyReq struct {
 	ProjectUID string `json:"projectuid"`
 }
 
-func projectVerify(server, filename, hash string, projectInfo ProjectInfo, cardInfo CardInfo, verbose bool) {
-	// json inputs
-	req := ProjectVerifyReq{hash, projectInfo.UID}
-	buffer := new(bytes.Buffer)
-	json.NewEncoder(buffer).Encode(req)
-	// http request
-	url := "$#$server$#$/api/verify-by-project"
-	url = strings.Replace(url, "$#$server$#$", server, 1)
-	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
+func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
+	// create url request
+	SetServerURL(server)
+	url := CreateURL("/api/verify-by-project")
+
+	// json inputs + request
+	req := ProjectVerifyReq{hash, pkeyUID}
+	res, err := Post(url, req)
 	if err != nil {
-		verifyError(projectInfo, cardInfo, common.NetworkError, fmt.Sprintf("http error %s", url), verbose)
-		return
+		fbkError(err, verbose)
+		os.Exit(1)
 	}
-	// analyze result
-	var response ProjectVerifyResponse
-	err = json.NewDecoder(res.Body).Decode(&response)
+
+	// parse output
+	var response ProjectVerifyValueReturn
+	err = json.Unmarshal(res, &response)
 	if err != nil {
-		verifyError(projectInfo, cardInfo, common.NetworkError, fmt.Sprintf("http response error %s", url), verbose)
-		return
+		j, _ := json.Marshal(&res)
+		fmt.Print(string(j))
+		os.Exit(1)
 	}
-	// check result
-	if len(response.Errors) > 0 {
-		verifyError(projectInfo, cardInfo, common.InvalidProject, fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail), verbose)
-	}
-	// check certificate signature
+
 	validity := false
-	values := response.Data.Value
-	for _, value := range values {
-		// check certificate
-		message := fmt.Sprintf("%s||%s", hash, value.KeyUID)
-		if value.KType == "ecdsa" {
-			ck, err := common.ECDSAVerify(value.Pubkey, message, value.CertificateSignature)
-			if err != nil {
-				continue
-			}
-			if !ck {
-				continue
-			}
-		} else if value.KType == "pgp" {
-			ck, err := common.PGPVerify(value.Pubkey, message, value.CertificateSignature)
-			if err != nil {
-				continue
-			}
-			if !ck {
-				continue
-			}
+	pkey := response.Value.PKey
+	card := response.Value.Card
+
+	// check signature + state of the card
+	if card.Txt != "" {
+		msg := fmt.Sprintf("register card %s at %d", card.UID, card.Date)
+		ck, err := common.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
+		if err != nil || !ck {
+			fbkError(common.NewFBKError(fmt.Sprintf("Project Error: invalid signature of the card"), common.InvalidProject), verbose)
 		}
-		// check delegation
-		message2 := fmt.Sprintf("approved key is %s at %d", value.KeyUID, value.Date)
-		ck, err := common.ECDSAVerify(projectInfo.Pubkey, message2, value.PkeySignature)
+		// check card
+		_, err3 := common.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
+		if err3 != nil {
+			fbkError(err3, verbose)
+		}
+	}
+
+	// check pkey state
+	if (pkey.State & 15) != 3 {
+		fbkError(common.NewFBKError(fmt.Sprintf("Project Error: invalid pkey state"), common.InvalidProject), verbose)
+	}
+
+	values := response.Value.Results
+	for _, value := range values {
+		key := value.Key
+		certificate := value.Certificate
+		// check key state
+		if (key.State & 7) != 3 {
+			continue
+		}
+		// check certificate
+		message := fmt.Sprintf("%s||%s", hash, key.KeyUID)
+		ck, err := common.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
 		if err != nil {
 			continue
 		}
 		if !ck {
 			continue
 		}
+		// check delegation
+		message2 := fmt.Sprintf("approved key is %s at %d", key.KeyUID, key.Date)
+		ck2, err2 := common.ECDSAVerify(pkey.Pubkey, message2, key.Signature)
+		if err2 != nil {
+			continue
+		}
+		if !ck2 {
+			continue
+		}
+		// check metadataSignature
+		if certificate.MetadataSignature != "" {
+			metadataSID := common.Keccak256(certificate.Metadata)
+			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, hash, key.KeyUID)
+			ck3, err3 := common.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
+			if err3 != nil {
+				continue
+			}
+			if !ck3 {
+				continue
+			}
+		}
+		// all verification completed
 		validity = true
 		break
 	}
 	if validity {
-		verifySuccess(projectInfo, cardInfo, filename, hash, verbose)
+		verifySuccess(pkey, card, filename, hash, verbose)
 		os.Exit(0)
 	} else {
-		verifyError(projectInfo, cardInfo, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
+		verifyError(pkey, card, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
 		os.Exit(1)
 	}
 }
