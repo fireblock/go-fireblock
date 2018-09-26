@@ -40,8 +40,7 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 	url := CreateURL("/api/verify-by-user")
 
 	// json inputs + request
-	sha3uuid := common.Keccak256(useruid)
-	req := UserVerifyReq{hash, sha3uuid}
+	req := UserVerifyReq{hash, useruid}
 	res, err := Post(url, req)
 	if err != nil {
 		fbkError(err, verbose)
