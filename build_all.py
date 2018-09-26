@@ -9,7 +9,7 @@ from subprocess import call
 import argparse
 
 PLATFORMS = ["windows/amd64", "windows/386", "darwin/amd64", "linux/amd64", "linux/386"]
-VERSION = "1.9.0"
+VERSION = "1.9.2"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
