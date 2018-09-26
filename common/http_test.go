@@ -13,12 +13,14 @@ func TestHTTPKeyWithInvalidKeyuid(t *testing.T) {
 	assert.Equal(t, key, "", "no key found")
 }
 
+/*
 func TestHTTPKeyWithValidKeyuid(t *testing.T) {
 	keyuid := PGPToB32("0x9ab6c2990618d54b3c0b3d56c55631b5d56e00fd")
 	key, err := HTTPKey(keyuid)
 	assert.Nil(t, err, "no error. key found")
 	assert.Equal(t, len(key), 3141, "key found")
 }
+*/
 
 func TestHTTPCard(t *testing.T) {
 	ServerURL = "https://dev.fireblock.io"
