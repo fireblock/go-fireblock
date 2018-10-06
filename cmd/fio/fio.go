@@ -66,13 +66,20 @@ func sign() {
 	if err != nil {
 		exit(fmt.Sprintf("Cannot read metadata on %s\n", filepath))
 	}
+	metadataSID := common.Keccak256(metadata)
 	// create message
 	message := sha256 + "||" + keyuid
+	messageSignature := metadataSID + "||" + sha256 + "||" + keyuid
 	// create signature
 	signature := ""
+	metadataSignature := ""
 	ktype := common.B32Type(keyuid)
 	if ktype == "pgp" {
 		signature, err = common.PGPSign(message, privkey, *passphrase)
+		if err != nil {
+			exit("Can't sign")
+		}
+		metadataSignature, err = common.PGPSign(messageSignature, privkey, *passphrase)
 		if err != nil {
 			exit("Can't sign")
 		}
@@ -81,11 +88,15 @@ func sign() {
 		if err != nil {
 			exit("Can't sign")
 		}
+		metadataSignature, err = common.ECDSASign(privkey, messageSignature)
+		if err != nil {
+			exit("Can't sign")
+		}
 	} else {
 		exit(fmt.Sprintf("Invalid key format %s\n", ktype))
 	}
 	// sign
-	_, err = createCertificate(*server, sha256, ktype, keyuid, signature, metadata)
+	_, err = createCertificate(*server, sha256, ktype, keyuid, signature, metadata, metadataSignature)
 	if err != nil {
 		fmt.Println(err)
 		exit("Can't sign")

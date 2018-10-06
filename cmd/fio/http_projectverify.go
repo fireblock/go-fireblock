@@ -11,7 +11,7 @@ import (
 func fbkError(err error, verbose bool) {
 	e := err.(*common.FBKError)
 	if e != nil {
-		fmt.Printf("code: %d detail: %s", e.Type(), e.Error())
+		fmt.Printf("code: %d detail: %s\n", e.Type(), e.Error())
 		os.Exit(1)
 	}
 	fmt.Printf(err.Error())
