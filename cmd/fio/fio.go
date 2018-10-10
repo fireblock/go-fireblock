@@ -1,3 +1,19 @@
+// Copyright 2015-2017 Fireblock.
+// This file is part of Fireblock.
+
+// Fireblock is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+
+// Fireblock is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+
+// You should have received a copy of the GNU General Public License
+// along with Fireblock.  If not, see <http://www.gnu.org/licenses/>.
+
 package main
 
 import (
@@ -35,7 +51,7 @@ func exit(msg string) {
 	os.Exit(1)
 }
 
-func sign() {
+func signFunction() {
 	// Read the private key (signFio or signKey)
 	var keyuid, privkey string
 	var err error
@@ -107,13 +123,9 @@ func sign() {
 	fmt.Print(metadata)
 }
 
-func verify() {
+func verifyFunction() {
 	if fverify == nil {
 		exit("Missing file")
-	}
-
-	if *projectID == "0x0" && *userID == "" {
-		exit("Use -u user-id or -p project-id")
 	}
 	filepath := *fverify
 	filename := path.Base(filepath)
@@ -125,9 +137,12 @@ func verify() {
 	if *userID != "" {
 		// verify by useruid
 		userVerify(*server, filename, sha256, *userID, *jverbose)
-	} else {
+	} else if *projectID != "0x0" {
 		// verify by cardId
 		projectVerify(*server, filename, sha256, *projectID, *jverbose)
+	} else {
+		// verify with the first key to register that hash
+		verify(*server, filename, sha256, *jverbose)
 	}
 }
 
@@ -140,9 +155,9 @@ func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(fireblock.Version).Author(fireblock.Author)
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case signCmd.FullCommand():
-		sign()
+		signFunction()
 	case verifyCmd.FullCommand():
-		verify()
+		verifyFunction()
 	case versionCmd.FullCommand():
 		version()
 	default:
