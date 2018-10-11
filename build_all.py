@@ -8,8 +8,27 @@ from subprocess import call
 
 import argparse
 
+# read version file
+VERSION = "0.0.0"
+with open('version.txt') as f:
+    VERSION = f.read().rstrip('\r\n')
+    f.close()
+# create version.go
+with open('version.go', 'w') as f2:
+    code = '''package fireblock
+
+const (
+	// Version - fbk version
+	Version = "$#$VERSION$#$"
+	// Author fireblock
+	Author = "Laurent Mallet laurent.mallet at gmail dot com"
+)
+'''
+    code = code.replace('$#$VERSION$#$', VERSION)
+    f2.write(code)
+    f2.close()
+
 PLATFORMS = ["windows/amd64", "windows/386", "darwin/amd64", "linux/amd64", "linux/386"]
-VERSION = "1.9.2"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

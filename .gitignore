@@ -9,3 +9,5 @@ dist/
 build/
 fbk
 debug
+fio_*.tgz
+scripts/
