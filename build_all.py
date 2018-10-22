@@ -49,9 +49,16 @@ if __name__ == "__main__":
         els = p.split('/')
         eos = els[0]
         arch = els[1]
-        archive = "fio-%s-%s-%s.tar.gz" % (eos, arch, VERSION)
-        cmdBuild = "GOOS=%s GOARCH=%s go build -o build/%s github.com/fireblock/go-fireblock/cmd/fio" % (eos, arch, "fio")
-        cmdArch = "tar zcvf dist/%s build/%s build/LICENSE" % (archive, "fio")
-        call(cmdBuild, shell=True)
-        call(cmdArch, shell=True)
+        if  p.find('windows') != -1:
+            archive = "fio-%s-%s-%s.zip" % (eos, arch, VERSION)
+            cmdBuild = "GOOS=%s GOARCH=%s go build -o build/%s github.com/fireblock/go-fireblock/cmd/fio" % (eos, arch, "fio")
+            cmdArch = "zip -r dist/%s build/*" % (archive)
+            call(cmdBuild, shell=True)
+            call(cmdArch, shell=True)
+        else:
+            archive = "fio-%s-%s-%s.tar.gz" % (eos, arch, VERSION)
+            cmdBuild = "GOOS=%s GOARCH=%s go build -o build/%s github.com/fireblock/go-fireblock/cmd/fio" % (eos, arch, "fio")
+            cmdArch = "tar zcvf dist/%s build/%s build/LICENSE" % (archive, "fio")
+            call(cmdBuild, shell=True)
+            call(cmdArch, shell=True)
 
