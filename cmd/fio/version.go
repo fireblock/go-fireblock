@@ -1,4 +1,4 @@
-package fireblock
+package main
 
 const (
 	// Version - fbk version

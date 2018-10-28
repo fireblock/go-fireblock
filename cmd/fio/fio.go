@@ -21,7 +21,6 @@ import (
 	"os"
 	"path"
 
-	fireblock "github.com/fireblock/go-fireblock"
 	"github.com/fireblock/go-fireblock/fireblocklib"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -147,12 +146,12 @@ func verifyFunction() {
 }
 
 func version() {
-	fmt.Printf("fio %s ( info at https://fireblock.io )\n", fireblock.Version)
+	fmt.Printf("fio %s ( info at https://fireblock.io )\n", Version)
 	os.Exit(0)
 }
 
 func main() {
-	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(fireblock.Version).Author(fireblock.Author)
+	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(Version).Author(Author)
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case signCmd.FullCommand():
 		signFunction()

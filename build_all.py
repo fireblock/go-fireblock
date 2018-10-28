@@ -14,8 +14,8 @@ with open('version.txt') as f:
     VERSION = f.read().rstrip('\r\n')
     f.close()
 # create version.go
-with open('version.go', 'w') as f2:
-    code = '''package fireblock
+with open('cmd/fio/version.go', 'w') as f2:
+    code = '''package main
 
 const (
 	// Version - fbk version
