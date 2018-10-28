@@ -16,7 +16,7 @@
 //
 // Package common contains various helper functions.
 
-package common
+package fireblocklib
 
 import (
 	"encoding/base64"

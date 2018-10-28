@@ -14,7 +14,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Fireblock.  If not, see <http://www.gnu.org/licenses/>.
 
-package common
+package fireblocklib
 
 import (
 	"crypto/sha1"
@@ -66,6 +66,11 @@ func RawSha256(text string) []byte {
 	hasher := sha256.New()
 	hasher.Write([]byte(text))
 	return hasher.Sum(nil)
+}
+
+// Sha256B return sha256
+func Sha256B(data []byte) [32]byte {
+	return sha256.Sum256(data)
 }
 
 // IsSha256 return true if it's a sha256
