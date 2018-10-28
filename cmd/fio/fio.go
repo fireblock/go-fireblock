@@ -22,7 +22,7 @@ import (
 	"path"
 
 	fireblock "github.com/fireblock/go-fireblock"
-	"github.com/fireblock/go-fireblock/common"
+	"github.com/fireblock/go-fireblock/fireblocklib"
 	"gopkg.in/alecthomas/kingpin.v2"
 )
 
@@ -61,50 +61,50 @@ func signFunction() {
 	} else if signFio != nil && len(*signFio) > 1 {
 		keypath := *signFio
 		// load fio file
-		_, keyuid, privkey, _, err = common.LoadFioFile(keypath)
+		_, keyuid, privkey, _, err = fireblocklib.LoadFioFile(keypath)
 		if err != nil {
 			exit("Invalid fio file")
 		}
 	} else if signKey != nil && len(*signKey) > 1 {
-		keyuid, privkey, err = common.LoadB64U(*signKey)
+		keyuid, privkey, err = fireblocklib.LoadB64U(*signKey)
 	} else {
 		exit("Missing private key! add --fio filepath or --key privatekey with correct values")
 	}
 
 	// compute sha256
 	filepath := *fsign
-	sha256, err := common.Sha256File(filepath)
+	sha256, err := fireblocklib.Sha256File(filepath)
 	if err != nil {
 		exit(fmt.Sprintf("Cannot compute sha256 on %s\n", filepath))
 	}
 	// get metadata
-	metadata, err := common.MetadataFile(filepath)
+	metadata, err := fireblocklib.MetadataFile(filepath)
 	if err != nil {
 		exit(fmt.Sprintf("Cannot read metadata on %s\n", filepath))
 	}
-	metadataSID := common.Keccak256(metadata)
+	metadataSID := fireblocklib.Keccak256(metadata)
 	// create message
 	message := sha256 + "||" + keyuid
 	messageSignature := metadataSID + "||" + sha256 + "||" + keyuid
 	// create signature
 	signature := ""
 	metadataSignature := ""
-	ktype := common.B32Type(keyuid)
+	ktype := fireblocklib.B32Type(keyuid)
 	if ktype == "pgp" {
-		signature, err = common.PGPSign(message, privkey, *passphrase)
+		signature, err = fireblocklib.PGPSign(message, privkey, *passphrase)
 		if err != nil {
 			exit("Can't sign")
 		}
-		metadataSignature, err = common.PGPSign(messageSignature, privkey, *passphrase)
+		metadataSignature, err = fireblocklib.PGPSign(messageSignature, privkey, *passphrase)
 		if err != nil {
 			exit("Can't sign")
 		}
 	} else if ktype == "ecdsa" {
-		signature, err = common.ECDSASign(privkey, message)
+		signature, err = fireblocklib.ECDSASign(privkey, message)
 		if err != nil {
 			exit("Can't sign")
 		}
-		metadataSignature, err = common.ECDSASign(privkey, messageSignature)
+		metadataSignature, err = fireblocklib.ECDSASign(privkey, messageSignature)
 		if err != nil {
 			exit("Can't sign")
 		}
@@ -129,7 +129,7 @@ func verifyFunction() {
 	}
 	filepath := *fverify
 	filename := path.Base(filepath)
-	sha256, err := common.Sha256File(filepath)
+	sha256, err := fireblocklib.Sha256File(filepath)
 	if err != nil {
 		fmt.Printf("Cannot compute sha256 on %s\n", filepath)
 		os.Exit(1)

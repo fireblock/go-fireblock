@@ -15,7 +15,7 @@ type CardInfo struct {
 	Twitter   CardInfoProvider
 	Github    CardInfoProvider
 	Linkedin  CardInfoProvider
-	Https     CardInfoProvider
+	HTTPS     CardInfoProvider
 }
 
 type KeyInfo struct {

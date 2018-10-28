@@ -21,11 +21,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/fireblock/go-fireblock/common"
+	"github.com/fireblock/go-fireblock/fireblocklib"
 )
 
 func fbkError(err error, verbose bool) {
-	e := err.(*common.FBKError)
+	e := err.(*fireblocklib.FBKError)
 	if e != nil {
 		fmt.Printf("code: %d detail: %s\n", e.Type(), e.Error())
 		os.Exit(1)
@@ -34,13 +34,14 @@ func fbkError(err error, verbose bool) {
 	os.Exit(1)
 }
 
-func convertPS2CIP(ps common.ProviderState) (cip CardInfoProvider) {
+func convertPS2CIP(ps fireblocklib.ProviderState) (cip CardInfoProvider) {
 	cip.UID = ps.UID
 	cip.Status = ps.Status
 	cip.Proof = ps.Proof
 	return cip
 }
 
+// ProjectVerifyResult result
 type ProjectVerifyResult struct {
 	Key         KeyInfo         `json:"key"`
 	Certificate CertificateInfo `json:"certificate"`
@@ -95,12 +96,12 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 	// check signature + state of the card
 	if card.Txt != "" {
 		msg := fmt.Sprintf("register card %s at %d", card.UID, card.Date)
-		ck, err := common.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
+		ck, err := fireblocklib.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
 		if err != nil || !ck {
-			fbkError(common.NewFBKError(fmt.Sprintf("Project Error: invalid signature of the card"), common.InvalidProject), verbose)
+			fbkError(fireblocklib.NewFBKError(fmt.Sprintf("Project Error: invalid signature of the card"), fireblocklib.InvalidProject), verbose)
 		}
 		// check card
-		_, err3 := common.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
+		_, err3 := fireblocklib.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
 		if err3 != nil {
 			fbkError(err3, verbose)
 		}
@@ -108,7 +109,7 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 
 	// check pkey state
 	if (pkey.State & 15) != 3 {
-		fbkError(common.NewFBKError(fmt.Sprintf("Project Error: invalid pkey state"), common.InvalidProject), verbose)
+		fbkError(fireblocklib.NewFBKError(fmt.Sprintf("Project Error: invalid pkey state"), fireblocklib.InvalidProject), verbose)
 	}
 
 	values := response.Value.Results
@@ -121,7 +122,7 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		}
 		// check certificate
 		message := fmt.Sprintf("%s||%s", hash, key.KeyUID)
-		ck, err := common.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
+		ck, err := fireblocklib.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
 		if err != nil {
 			continue
 		}
@@ -130,7 +131,7 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		}
 		// check delegation
 		message2 := fmt.Sprintf("approved key is %s at %d", key.KeyUID, key.Date)
-		ck2, err2 := common.ECDSAVerify(pkey.Pubkey, message2, key.Signature)
+		ck2, err2 := fireblocklib.ECDSAVerify(pkey.Pubkey, message2, key.Signature)
 		if err2 != nil {
 			continue
 		}
@@ -139,9 +140,9 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		}
 		// check metadataSignature
 		if certificate.MetadataSignature != "" {
-			metadataSID := common.Keccak256(certificate.Metadata)
+			metadataSID := fireblocklib.Keccak256(certificate.Metadata)
 			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, hash, key.KeyUID)
-			ck3, err3 := common.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
+			ck3, err3 := fireblocklib.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
 			if err3 != nil {
 				continue
 			}
@@ -157,7 +158,7 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		verifySuccess(pkey, card, filename, hash, verbose)
 		os.Exit(0)
 	} else {
-		verifyError(pkey, card, common.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
+		verifyError(pkey, card, fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
 		os.Exit(1)
 	}
 }

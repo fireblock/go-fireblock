@@ -22,23 +22,24 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/fireblock/go-fireblock/common"
+	"github.com/fireblock/go-fireblock/fireblocklib"
 )
 
-var SERVER_URL string
+// ServerURL server url
+var ServerURL string
 
-// ProjectVerifyResponse http request
-type HttpResponse struct {
-	Errors []common.ErrorRes `json:"errors,omitempty"`
-	Data   json.RawMessage   `json:"data"`
+// HTTPResponse http request
+type HTTPResponse struct {
+	Errors []fireblocklib.ErrorRes `json:"errors,omitempty"`
+	Data   json.RawMessage         `json:"data"`
 }
 
 func SetServerURL(url string) {
-	SERVER_URL = url
+	ServerURL = url
 }
 
 func CreateURL(uri string) string {
-	url := SERVER_URL + uri
+	url := ServerURL + uri
 	return url
 }
 
@@ -47,17 +48,17 @@ func Post(url string, param interface{}) (json.RawMessage, error) {
 	json.NewEncoder(buffer).Encode(param)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
 	if err != nil {
-		return nil, common.NewFBKError("url: "+url, common.NetworkError)
+		return nil, fireblocklib.NewFBKError("url: "+url, fireblocklib.NetworkError)
 	}
-	var response HttpResponse
+	var response HTTPResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
-		return nil, common.NewFBKError(fmt.Sprintf("http response error %s", url), common.APIError)
+		return nil, fireblocklib.NewFBKError(fmt.Sprintf("http response error %s", url), fireblocklib.APIError)
 	}
 	// check result
 	if len(response.Errors) > 0 {
 		message := fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail)
-		return nil, common.NewFBKError(message, common.APIError)
+		return nil, fireblocklib.NewFBKError(message, fireblocklib.APIError)
 	}
 	return response.Data, nil
 }
