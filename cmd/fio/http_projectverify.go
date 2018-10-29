@@ -45,20 +45,20 @@ func convertPS2CIP(ps fireblocklib.ProviderState) (cip CardInfoProvider) {
 type ProjectVerifyResult struct {
 	Key         KeyInfo         `json:"key"`
 	Certificate CertificateInfo `json:"certificate"`
+	Card        CardInfo        `json:"card"`
+	PKey        KeyInfo         `json:"pkey"`
 }
 
 // ProjectVerifyValue http request
 // keyUID, metadata, pkeySignature, certificateSignature, date, cdate, pkeystate: pks, ppubkey, keystate: ks, pubkey, ktype, metadataSignature
 type ProjectVerifyValue struct {
 	Results []ProjectVerifyResult `json:"results"`
-	Card    CardInfo              `json:"card"`
-	PKey    KeyInfo               `json:"pkey"`
 }
 
 // ProjectVerifyValueReturn http request
 type ProjectVerifyValueReturn struct {
-	Value ProjectVerifyValue `json:"value"`
-	ID    string             `json:"id"`
+	Value []ProjectVerifyResult `json:"value"`
+	ID    string                `json:"id"`
 }
 
 // ProjectVerifyReq http request
@@ -89,39 +89,66 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		os.Exit(1)
 	}
 
+	var pkey, key KeyInfo
+	var card CardInfo
+	var certificate CertificateInfo
 	validity := false
-	pkey := response.Value.PKey
-	card := response.Value.Card
 
-	// check signature + state of the card
-	if card.Txt != "" {
-		msg := fmt.Sprintf("register card %s at %d", card.UID, card.Date)
-		ck, err := fireblocklib.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
-		if err != nil || !ck {
-			fbkError(fireblocklib.NewFBKError(fmt.Sprintf("Project Error: invalid signature of the card"), fireblocklib.InvalidProject), verbose)
-		}
-		// check card
-		_, err3 := fireblocklib.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
-		if err3 != nil {
-			fbkError(err3, verbose)
-		}
-	}
-
-	// check pkey state
-	if (pkey.State & 15) != 3 {
-		fbkError(fireblocklib.NewFBKError(fmt.Sprintf("Project Error: invalid pkey state"), fireblocklib.InvalidProject), verbose)
-	}
-
-	values := response.Value.Results
+	values := response.Value
 	for _, value := range values {
-		key := value.Key
-		certificate := value.Certificate
+		key = value.Key
+		certificate = value.Certificate
+		pkey = value.PKey
+		card = value.Card
+
+		certificateHash := hash
+		if certificate.Hash != hash {
+			certificateHash = certificate.Hash
+			batch := certificate.Batch
+			hash2 := fireblocklib.Sha256(batch)
+			if hash2 != certificate.Hash {
+				continue
+			}
+			batchArray, err2 := fireblocklib.ReadBatch(certificate.Batch)
+			if err2 != nil {
+				continue
+			}
+			found := false
+			for _, element := range batchArray {
+				if element.Hash == hash {
+					found = true
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		// check signature + state of the card
+		if card.Txt != "" {
+			msg := fmt.Sprintf("register card %s at %d", card.UID, card.Date)
+			ck, err := fireblocklib.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
+			if err != nil || !ck {
+				fbkError(fireblocklib.NewFBKError(fmt.Sprintf("Project Error: invalid signature of the card"), fireblocklib.InvalidProject), verbose)
+			}
+			// check card
+			_, err3 := fireblocklib.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
+			if err3 != nil {
+				fbkError(err3, verbose)
+			}
+		}
+
+		// check pkey state
+		if (pkey.State & 15) != 3 {
+			fbkError(fireblocklib.NewFBKError(fmt.Sprintf("Project Error: invalid pkey state"), fireblocklib.InvalidProject), verbose)
+		}
+
 		// check key state
 		if (key.State & 7) != 3 {
 			continue
 		}
 		// check certificate
-		message := fmt.Sprintf("%s||%s", hash, key.KeyUID)
+		message := fmt.Sprintf("%s||%s", certificateHash, key.KeyUID)
 		ck, err := fireblocklib.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
 		if err != nil {
 			continue
@@ -141,7 +168,7 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		// check metadataSignature
 		if certificate.MetadataSignature != "" {
 			metadataSID := fireblocklib.Keccak256(certificate.Metadata)
-			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, hash, key.KeyUID)
+			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, certificateHash, key.KeyUID)
 			ck3, err3 := fireblocklib.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
 			if err3 != nil {
 				continue

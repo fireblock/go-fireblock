@@ -85,6 +85,30 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 		card = value.Card
 		certificate = value.Certificate
 
+		certificateHash := hash
+		if certificate.Hash != hash {
+			certificateHash = certificate.Hash
+			batch := certificate.Batch
+			hash2 := fireblocklib.Sha256(batch)
+			if hash2 != certificate.Hash {
+				continue
+			}
+			batchArray, err2 := fireblocklib.ReadBatch(certificate.Batch)
+			fmt.Print(certificate.Batch)
+			if err2 != nil {
+				continue
+			}
+			found := false
+			for _, element := range batchArray {
+				if element.Hash == hash {
+					found = true
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
 		// pkey state
 		if (pkey.State & 15) != 3 {
 			continue
@@ -109,7 +133,7 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 			continue
 		}
 		// check certificate
-		message := fmt.Sprintf("%s||%s", hash, key.KeyUID)
+		message := fmt.Sprintf("%s||%s", certificateHash, key.KeyUID)
 		ck, err := fireblocklib.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
 		if err != nil {
 			continue
@@ -129,7 +153,7 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 		// check metadataSignature
 		if certificate.MetadataSignature != "" {
 			metadataSID := fireblocklib.Keccak256(certificate.Metadata)
-			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, hash, key.KeyUID)
+			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, certificateHash, key.KeyUID)
 			ck3, err3 := fireblocklib.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
 			if err3 != nil {
 				continue

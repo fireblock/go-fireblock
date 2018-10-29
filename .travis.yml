@@ -5,5 +5,5 @@ before_install:
 - go get -u golang.org/x/tools/cmd/cover
 - go get -u github.com/mattn/goveralls
 script:
-- env GO111MODULE=on go test github.com/fireblock/go-fireblock/common -v -covermode=count -coverprofile=coverage.out
+- env GO111MODULE=on go test github.com/fireblock/go-fireblock/fireblocklib -v -covermode=count -coverprofile=coverage.out
 - env GO111MODULE=on $HOME/gopath/bin/goveralls -coverprofile=coverage.out -service=travis-ci
