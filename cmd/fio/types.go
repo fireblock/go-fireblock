@@ -33,6 +33,7 @@ type CertificateInfo struct {
 	Signature         string `json:"signature"`
 	Metadata          string `json:"metadata"`
 	MetadataSignature string `json:"metadataSignature"`
+	Batch             string `json:"batch"`
 	Date              int64  `json:"date"`
 	Status            string
 }
