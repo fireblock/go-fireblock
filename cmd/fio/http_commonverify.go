@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/fireblock/go-fireblock/fireblocklib"
 )
 
 // VerifySuccessReturn success data
@@ -93,4 +95,74 @@ func verifyExist(projectInfo KeyInfo, cardInfo CardInfo, filename, hash string, 
 		fmt.Printf("FILE SIGNED by %s (card: %s)\n", projectInfo.KeyUID, cardInfo.Txt)
 	}
 	os.Exit(0)
+}
+
+func checkAResult(pkey, key KeyInfo, card CardInfo, certificate CertificateInfo, hash string) bool {
+	certificateHash := hash
+	if certificate.Hash != hash {
+		certificateHash = certificate.Hash
+		batch := certificate.Batch
+		hash2 := fireblocklib.Sha256(batch)
+		if hash2 != certificate.Hash {
+			return false
+		}
+		if !fireblocklib.IsInBatch(certificate.Batch, hash) {
+			return false
+		}
+	}
+
+	// pkey state
+	if (pkey.State & 15) != 3 {
+		return false
+	}
+
+	// check signature + state of the card
+	if card.Txt != "" {
+		msg := fmt.Sprintf("register card %s at %d", card.UID, card.Date)
+		ck, err := fireblocklib.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
+		if err != nil || !ck {
+			return false
+		}
+		// check card
+		_, err3 := fireblocklib.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
+		if err3 != nil {
+			return false
+		}
+	}
+
+	// key state
+	if (key.State & 7) != 3 {
+		return false
+	}
+	// check certificate
+	message := fmt.Sprintf("%s||%s", certificateHash, key.KeyUID)
+	ck, err := fireblocklib.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
+	if err != nil {
+		return false
+	}
+	if !ck {
+		return false
+	}
+	// check delegation
+	message2 := fmt.Sprintf("approved key is %s at %d", key.KeyUID, key.Date)
+	ck2, err2 := fireblocklib.VerifySignature("ecdsa", pkey.Pubkey, message2, key.Signature)
+	if err2 != nil {
+		return false
+	}
+	if !ck2 {
+		return false
+	}
+	// check metadataSignature
+	if certificate.MetadataSignature != "" {
+		metadataSID := fireblocklib.Keccak256(certificate.Metadata)
+		message3 := fmt.Sprintf("%s||%s||%s", metadataSID, certificateHash, key.KeyUID)
+		ck3, err3 := fireblocklib.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
+		if err3 != nil {
+			return false
+		}
+		if !ck3 {
+			return false
+		}
+	}
+	return true
 }

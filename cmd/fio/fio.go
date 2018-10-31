@@ -17,6 +17,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -40,7 +41,7 @@ var (
 	signKey    = signCmd.Flag("key", "private key in base64url").Short('k').Default("").String()
 	signFio    = signCmd.Flag("fio", "path to fio file").Short('f').ExistingFile()
 	passphrase = signCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
-	fsign      = signCmd.Arg("file", "File to sign.").Required().ExistingFile()
+	fsign      = signCmd.Arg("file", "File to sign.").Required().ExistingFilesOrDirs()
 
 	versionCmd = app.Command("version", "versio of fio (https://fireblock.io)")
 )
@@ -70,56 +71,77 @@ func signFunction() {
 		exit("Missing private key! add --fio filepath or --key privatekey with correct values")
 	}
 
-	// compute sha256
-	filepath := *fsign
-	sha256, err := fireblocklib.Sha256File(filepath)
-	if err != nil {
-		exit(fmt.Sprintf("Cannot compute sha256 on %s\n", filepath))
+	// analyze args
+	data := make(map[string]fireblocklib.Metadata)
+	filepaths := *fsign
+	for _, filepath := range filepaths {
+		// check if directory or file
+		stat, err := os.Stat(filepath)
+		if err != nil {
+			// skip
+			continue
+		}
+		if stat.Mode().IsDir() {
+			files, err := fireblocklib.ListFilesInDirectory(filepath)
+			if err != nil {
+				fmt.Printf("Cannot list files in %s\n", filepath)
+				continue
+			}
+			for _, f := range files {
+				sha256, err := fireblocklib.Sha256File(f)
+				if err != nil {
+					fmt.Printf("Cannot compute sha256 on %s\n", f)
+					continue
+				}
+				// get metadata
+				metadata, err := fireblocklib.MetadataFile(f)
+				if err != nil {
+					fmt.Printf("Cannot read metadata on %s\n", f)
+					continue
+				}
+				data[sha256] = metadata
+			}
+		}
+		if stat.Mode().IsRegular() {
+			sha256, err := fireblocklib.Sha256File(filepath)
+			if err != nil {
+				fmt.Printf("Cannot compute sha256 on %s\n", filepath)
+				continue
+			}
+			// get metadata
+			metadata, err := fireblocklib.MetadataFile(filepath)
+			if err != nil {
+				fmt.Printf("Cannot read metadata on %s\n", filepath)
+				continue
+			}
+			data[sha256] = metadata
+		}
 	}
-	// get metadata
-	metadata, err := fireblocklib.MetadataFile(filepath)
-	if err != nil {
-		exit(fmt.Sprintf("Cannot read metadata on %s\n", filepath))
-	}
-	metadataSID := fireblocklib.Keccak256(metadata)
-	// create message
-	message := sha256 + "||" + keyuid
-	messageSignature := metadataSID + "||" + sha256 + "||" + keyuid
-	// create signature
-	signature := ""
-	metadataSignature := ""
-	ktype := fireblocklib.B32Type(keyuid)
-	if ktype == "pgp" {
-		signature, err = fireblocklib.PGPSign(message, privkey, *passphrase)
-		if err != nil {
-			exit("Can't sign")
-		}
-		metadataSignature, err = fireblocklib.PGPSign(messageSignature, privkey, *passphrase)
-		if err != nil {
-			exit("Can't sign")
-		}
-	} else if ktype == "ecdsa" {
-		signature, err = fireblocklib.ECDSASign(privkey, message)
-		if err != nil {
-			exit("Can't sign")
-		}
-		metadataSignature, err = fireblocklib.ECDSASign(privkey, messageSignature)
-		if err != nil {
-			exit("Can't sign")
+	if len(data) <= 0 {
+		fmt.Printf("Nothing to sign\n")
+		os.Exit(1)
+	} else if len(data) > 128 {
+		fmt.Printf("Batch limitted to 128 objects\n")
+		os.Exit(1)
+	} else if len(data) == 1 {
+		// one certificat
+		for hash, metadata := range data {
+			signACertificate("", hash, keyuid, privkey, metadata)
+			break
 		}
 	} else {
-		exit(fmt.Sprintf("Invalid key format %s\n", ktype))
+		// a batch
+		var batchArray []fireblocklib.BatchElem
+		for hash, metadata := range data {
+			batchArray = append(batchArray, fireblocklib.BatchElem{Hash: hash, Filename: metadata.Filename, Size: metadata.Size, Type: metadata.Type})
+		}
+		b, _ := json.Marshal(&batchArray)
+		batch := string(b)
+		// compute sha256
+		hash := fireblocklib.Sha256(batch)
+		metadata := fireblocklib.Metadata{Kind: "b100", Filename: "batch", Size: int64(len(batch)), Type: "application/json"}
+		signACertificate(batch, hash, keyuid, privkey, metadata)
 	}
-	// sign
-	_, err = createCertificate(*server, sha256, ktype, keyuid, signature, metadata, metadataSignature)
-	if err != nil {
-		fmt.Println(err)
-		exit("Can't sign")
-	}
-	filename := path.Base(filepath)
-	fmt.Print(filename)
-	fmt.Print(sha256)
-	fmt.Print(metadata)
 }
 
 func verifyFunction() {
@@ -151,7 +173,8 @@ func version() {
 }
 
 func main() {
-	kingpin.UsageTemplate(kingpin.CompactUsageTemplate).Version(Version).Author(Author)
+	kingpin.UsageTemplate(kingpin.CompactUsageTemplate)
+	app.Version(Version).Author(Author)
 	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
 	case signCmd.FullCommand():
 		signFunction()

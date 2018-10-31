@@ -116,30 +116,9 @@ func TestSha256File(t *testing.T) {
 
 func TestMetadata(t *testing.T) {
 	val, _ := MetadataFile("testdata/test.txt")
-	assert.Equal(t, `{"filename":"test.txt","size":18}`, val, "no error")
+	assert.Equal(t, `test.txt`, val.Filename, "no error")
+	assert.Equal(t, int64(18), val.Size, "no error")
 	_, err := MetadataFile("testdata/test__.txt")
 	e := err.(*FBKError)
 	assert.Equal(t, e.Type(), InvalidFile, "no error")
 }
-
-/*
-func TestLoadFioContentPGPPubKey(t *testing.T) {
-	keyuid, _, _, _ := LoadFioContent(fireblockPubKey)
-	assert.Equal(t, "0x10000000000000000000000099090eae43316b2ba65ec52bcd5834a3e07edb2c", keyuid, "no error")
-}
-
-func TestLoadFioContentECDSAPubKey(t *testing.T) {
-	keyuid, _, _, _ := LoadFioContent(jwkPubKeyFioContent1)
-	assert.Equal(t, "0x20000000000000000000000002e1ee50a71cb8a81aff1461c2d3163b39f88a25", keyuid, "no error")
-}
-
-func TestLoadFioFileECDSAPubKey(t *testing.T) {
-	keyuid, _, _, _ := LoadFioFile("testdata/jwk_2e1ee50a71cb8a81aff1461c2d3163b39f88a25.fio")
-	assert.Equal(t, "0x20000000000000000000000002e1ee50a71cb8a81aff1461c2d3163b39f88a25", keyuid, "no error")
-}
-
-func TestLoadFioFileECDSAPubKey2(t *testing.T) {
-	_, _, _, err := LoadFioFile("testdata/jwk____.fio")
-	assert.NotNil(t, err, "no file found")
-}
-*/

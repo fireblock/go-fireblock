@@ -22,16 +22,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/fireblock/go-fireblock/fireblocklib"
 )
 
 // SignReq http request struct
 type SignReq struct {
+	Batch             string `json:"batch,omitempty"`
 	Hash              string `json:"hash"`
 	KType             string `json:"ktype"`
 	Keyuid            string `json:"keyuid"`
 	Signature         string `json:"signature"`
 	Metadata          string `json:"metadata"`
 	MetadataSignature string `json:"metadataSignature"`
+}
+
+// Batch
+type Batch struct {
+	Kind     string `json:"kind"`
+	Filename string `json:"filename"`
+	Size     int64  `json:"size"`
+	Type     string `json:"type"`
 }
 
 // CreateCertificateValueReturn http request struct
@@ -49,7 +60,7 @@ func createCertificate(server, hash, ktype, keyuid, signature, metadata, metadat
 	sig64 := base64.StdEncoding.EncodeToString([]byte(signature))
 	meta64 := base64.StdEncoding.EncodeToString([]byte(metadata))
 	metaSig64 := base64.StdEncoding.EncodeToString([]byte(metadataSignature))
-	req := SignReq{hash, ktype, keyuid, sig64, meta64, metaSig64}
+	req := SignReq{"", hash, ktype, keyuid, sig64, meta64, metaSig64}
 	res, err := Post(url, req)
 	if err != nil {
 		fbkError(err, false)
@@ -66,5 +77,73 @@ func createCertificate(server, hash, ktype, keyuid, signature, metadata, metadat
 	}
 
 	return "success", nil
+}
 
+func createBatch(server, batch, hash, ktype, keyuid, signature, metadata, metadataSignature string) (string, error) {
+	// create url request
+	SetServerURL(server)
+	url := CreateURL("/api/create-batch")
+
+	// json inputs + request
+	req := SignReq{batch, hash, ktype, keyuid, signature, metadata, metadataSignature}
+	res, err := Post(url, req)
+	if err != nil {
+		fbkError(err, false)
+		os.Exit(1)
+	}
+	// parse output
+	var response CreateCertificateValueReturn
+	err = json.Unmarshal(res, &response)
+	if err != nil {
+		j, _ := json.Marshal(&res)
+		fmt.Println(string(j))
+		os.Exit(0)
+	}
+
+	return "success", nil
+}
+
+func signACertificate(batch, hash, keyuid, privkey string, metadata fireblocklib.Metadata) {
+	m, _ := json.Marshal(metadata)
+	m2 := string(m)
+	metadataSID := fireblocklib.Keccak256(m2)
+	// create message
+	message := hash + "||" + keyuid
+	messageSignature := metadataSID + "||" + hash + "||" + keyuid
+	// create signature
+	var err error
+	signature := ""
+	metadataSignature := ""
+	ktype := fireblocklib.B32Type(keyuid)
+	if ktype == "pgp" {
+		signature, err = fireblocklib.PGPSign(message, privkey, *passphrase)
+		if err != nil {
+			exit("Can't sign")
+		}
+		metadataSignature, err = fireblocklib.PGPSign(messageSignature, privkey, *passphrase)
+		if err != nil {
+			exit("Can't sign")
+		}
+	} else if ktype == "ecdsa" {
+		signature, err = fireblocklib.ECDSASign(privkey, message)
+		if err != nil {
+			exit("Can't sign")
+		}
+		metadataSignature, err = fireblocklib.ECDSASign(privkey, messageSignature)
+		if err != nil {
+			exit("Can't sign")
+		}
+	} else {
+		exit(fmt.Sprintf("Invalid key format %s\n", ktype))
+	}
+	// sign
+	if batch == "" {
+		_, err = createCertificate(*server, hash, ktype, keyuid, signature, m2, metadataSignature)
+	} else {
+		_, err = createBatch(*server, batch, hash, ktype, keyuid, signature, m2, metadataSignature)
+	}
+	if err != nil {
+		fmt.Println(err)
+		exit("Can't sign")
+	}
 }

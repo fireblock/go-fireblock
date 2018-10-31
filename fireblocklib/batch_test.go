@@ -24,10 +24,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBatch(t *testing.T) {
+func TestReadBatch(t *testing.T) {
 	batch := `[{"h":"0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63993","f":"go1.11.1.linux-amd64.tar.gz","s":127205934,"t":"application/gzip"},{"h":"0xbac3c86a6a1591259e1e11fb4e94b015d17940b04280b9bb76a9626db573d9fd","f":"discord-0.0.5.deb","s":52100102,"t":"application/vnd.debian.binary-package"}]`
-	res, err := ReadBatch(batch)
+	res, err := readBatch(batch)
 	assert.Equal(t, err, nil, "")
 	assert.Equal(t, len(res), 2, "")
 	assert.Equal(t, res[0].Hash, "0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63993", "")
+}
+
+func TestIsInBatch(t *testing.T) {
+	batch := `[{"h":"0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63993","f":"go1.11.1.linux-amd64.tar.gz","s":127205934,"t":"application/gzip"},{"h":"0xbac3c86a6a1591259e1e11fb4e94b015d17940b04280b9bb76a9626db573d9fd","f":"discord-0.0.5.deb","s":52100102,"t":"application/vnd.debian.binary-package"}]`
+	ck := IsInBatch(batch, "0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63993")
+	assert.Equal(t, true, ck, "")
+}
+func TestNotInBatch(t *testing.T) {
+	batch := `[{"h":"0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63992","f":"go1.11.1.linux-amd64.tar.gz","s":127205934,"t":"application/gzip"},{"h":"0xbac3c86a6a1591259e1e11fb4e94b015d17940b04280b9bb76a9626db573d9fd","f":"discord-0.0.5.deb","s":52100102,"t":"application/vnd.debian.binary-package"}]`
+	ck := IsInBatch(batch, "0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63993")
+	assert.Equal(t, false, ck, "")
+}
+
+func TestNotInBatchInvalidJSON(t *testing.T) {
+	batch := `[{"h:"0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63992","f":"go1.11.1.linux-amd64.tar.gz","s":127205934,"t":"application/gzip"},{"h":"0xbac3c86a6a1591259e1e11fb4e94b015d17940b04280b9bb76a9626db573d9fd","f":"discord-0.0.5.deb","s":52100102,"t":"application/vnd.debian.binary-package"}]`
+	ck := IsInBatch(batch, "0x2871270d8ff0c8c69f161aaae42f9f28739855ff5c5204752a8d92a1c9f63993")
+	assert.Equal(t, false, ck, "")
 }

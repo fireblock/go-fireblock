@@ -25,35 +25,36 @@ import (
 	"io/ioutil"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 )
 
 // Metadata meta data
 type Metadata struct {
-	Filename string `json:"filename"`
+	Kind     string `json:"kind,omitempty"`
+	Filename string `json:"filename,omitempty"`
 	Type     string `json:"type,omitempty"`
 	Size     int64  `json:"size"`
 }
 
 // MetadataFile extract Metadata from file
-func MetadataFile(filepath string) (string, error) {
+func MetadataFile(filepath string) (Metadata, error) {
+	metadata := Metadata{"", "", "", 0}
 	file, err := os.Open(filepath)
 	if err != nil {
 		msg := fmt.Sprintf(`No file at %s`, filepath)
-		return "", NewFBKError(msg, InvalidFile)
+		return metadata, NewFBKError(msg, InvalidFile)
 	}
 	defer file.Close()
 	fi, err := file.Stat()
 	if err != nil {
 		msg := fmt.Sprintf(`No stat info at %s`, filepath)
-		return "", NewFBKError(msg, InvalidFile)
+		return metadata, NewFBKError(msg, InvalidFile)
 	}
 	// json -> string
-	metadata := Metadata{"", "", 0}
 	metadata.Filename = path.Base(filepath)
 	metadata.Size = fi.Size()
-	export, _ := json.Marshal(metadata)
-	return string(export), nil
+	return metadata, nil
 }
 
 const regexPGPPrivKey = `(?s).*(-----BEGIN PGP PRIVATE KEY BLOCK-----.*-----END PGP PRIVATE KEY BLOCK-----).*`
@@ -74,6 +75,7 @@ type ECDSAFIO struct {
 	Keys []json.RawMessage `json:"keys"`
 }
 
+// KeyFIO key fio
 type KeyFIO struct {
 	Pubkey  string `json:"pubkey"`
 	Privkey string `json:"privkey"`
@@ -141,6 +143,7 @@ func LoadB64U(data string) (string, string, error) {
 	return fp, string(content), nil
 }
 
+// VerifySignature verify signature
 func VerifySignature(ktype, pubkey, message, signature string) (bool, error) {
 	if ktype == "ecdsa" {
 		return ECDSAVerify(pubkey, message, signature)
@@ -149,4 +152,16 @@ func VerifySignature(ktype, pubkey, message, signature string) (bool, error) {
 	}
 	msg := fmt.Sprintf("Invalid key type %s", ktype)
 	return false, NewFBKError(msg, InvalidKey)
+}
+
+// ListFilesInDirectory recursive
+func ListFilesInDirectory(root string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
 }

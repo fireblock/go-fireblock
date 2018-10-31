@@ -84,81 +84,9 @@ func verify(server, filename, hash string, verbose bool) {
 		card = value.Card
 		certificate = value.Certificate
 
-		certificateHash := hash
-		if certificate.Hash != hash {
-			certificateHash = certificate.Hash
-			batch := certificate.Batch
-			hash2 := fireblocklib.Sha256(batch)
-			if hash2 != certificate.Hash {
-				continue
-			}
-			batchArray, err2 := fireblocklib.ReadBatch(certificate.Batch)
-			if err2 != nil {
-				continue
-			}
-			found := false
-			for _, element := range batchArray {
-				if element.Hash == hash {
-					found = true
-				}
-			}
-			if !found {
-				continue
-			}
-		}
-
-		// pkey state
-		if (pkey.State & 15) != 3 {
-			continue
-		}
-
-		// check signature + state of the card
-		if card.Txt != "" {
-			msg := fmt.Sprintf("register card %s at %d", card.UID, card.Date)
-			ck, err := fireblocklib.ECDSAVerify(pkey.Pubkey, msg, card.Signature)
-			if err != nil || !ck {
-				continue
-			}
-			// check card
-			_, err3 := fireblocklib.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
-			if err3 != nil {
-				continue
-			}
-		}
-
-		// key state
-		if (key.State & 7) != 3 {
-			continue
-		}
-		// check certificate
-		message := fmt.Sprintf("%s||%s", certificateHash, key.KeyUID)
-		ck, err := fireblocklib.VerifySignature(key.KType, key.Pubkey, message, certificate.Signature)
-		if err != nil {
-			continue
-		}
+		ck := checkAResult(pkey, key, card, certificate, hash)
 		if !ck {
 			continue
-		}
-		// check delegation
-		message2 := fmt.Sprintf("approved key is %s at %d", key.KeyUID, key.Date)
-		ck2, err2 := fireblocklib.VerifySignature("ecdsa", pkey.Pubkey, message2, key.Signature)
-		if err2 != nil {
-			continue
-		}
-		if !ck2 {
-			continue
-		}
-		// check metadataSignature
-		if certificate.MetadataSignature != "" {
-			metadataSID := fireblocklib.Keccak256(certificate.Metadata)
-			message3 := fmt.Sprintf("%s||%s||%s", metadataSID, certificateHash, key.KeyUID)
-			ck3, err3 := fireblocklib.VerifySignature(key.KType, key.Pubkey, message3, certificate.MetadataSignature)
-			if err3 != nil {
-				continue
-			}
-			if !ck3 {
-				continue
-			}
 		}
 		validity = true
 		break
