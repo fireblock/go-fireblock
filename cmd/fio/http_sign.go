@@ -18,7 +18,6 @@ package main
 
 // HTTPSign sign
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -57,10 +56,7 @@ func createCertificate(server, hash, ktype, keyuid, signature, metadata, metadat
 	url := CreateURL("/api/create-certificate")
 
 	// json inputs + request
-	sig64 := base64.StdEncoding.EncodeToString([]byte(signature))
-	meta64 := base64.StdEncoding.EncodeToString([]byte(metadata))
-	metaSig64 := base64.StdEncoding.EncodeToString([]byte(metadataSignature))
-	req := SignReq{"", hash, ktype, keyuid, sig64, meta64, metaSig64}
+	req := SignReq{"", hash, ktype, keyuid, signature, metadata, metadataSignature}
 	res, err := Post(url, req)
 	if err != nil {
 		fbkError(err, false)
