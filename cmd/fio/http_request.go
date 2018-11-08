@@ -34,15 +34,18 @@ type HTTPResponse struct {
 	Data   json.RawMessage         `json:"data"`
 }
 
+// SetServerURL set server url
 func SetServerURL(url string) {
 	ServerURL = url
 }
 
+// CreateURL create an uri
 func CreateURL(uri string) string {
 	url := ServerURL + uri
 	return url
 }
 
+// Post request
 func Post(url string, param interface{}) (json.RawMessage, error) {
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(param)
@@ -50,6 +53,13 @@ func Post(url string, param interface{}) (json.RawMessage, error) {
 	if err != nil {
 		return nil, fireblocklib.NewFBKError("url: "+url, fireblocklib.NetworkError)
 	}
+	// if our API return 200, we have a json result
+	if res.StatusCode == 200 {
+		var response json.RawMessage
+		err = json.NewDecoder(res.Body).Decode(&response)
+		return response, nil
+	}
+	// if error, check if we have a json error
 	var response HTTPResponse
 	err = json.NewDecoder(res.Body).Decode(&response)
 	if err != nil {
@@ -57,7 +67,8 @@ func Post(url string, param interface{}) (json.RawMessage, error) {
 	}
 	// check result
 	if len(response.Errors) > 0 {
-		message := fmt.Sprintf("Project Error: %s %s", response.Errors[0].ID, response.Errors[0].Detail)
+		message := fmt.Sprintf("Error %d: %s\n", res.StatusCode, response.Errors[0].ID)
+		message += fmt.Sprintf("Detail: %s", response.Errors[0].Detail)
 		return nil, fireblocklib.NewFBKError(message, fireblocklib.APIError)
 	}
 	return response.Data, nil

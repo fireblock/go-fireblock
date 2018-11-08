@@ -37,13 +37,6 @@ type VerifyValueReturn struct {
 	Value []VerifyValue `json:"value"`
 }
 
-// VerifyValueResponse http request
-type VerifyValueResponse struct {
-	Value  VerifyValueReturn       `json:"value"`
-	Errors []fireblocklib.ErrorRes `json:"errors,omitempty"`
-	ID     string                  `json:"id"`
-}
-
 // VerifyReq http request
 type VerifyReq struct {
 	Hash string `json:"hash"`

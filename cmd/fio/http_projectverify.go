@@ -109,7 +109,7 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		break
 	}
 	if validity {
-		verifySuccess(pkey, card, filename, hash, verbose)
+		verifySuccess(pkey, card, certificate, filename, hash, verbose)
 		os.Exit(0)
 	} else {
 		verifyError(pkey, card, fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)

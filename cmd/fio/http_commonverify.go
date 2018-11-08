@@ -34,6 +34,7 @@ type VerifySuccessReturn struct {
 	CardUID    string `json:"carduid,omitempty"`
 	ProjectUID string `json:"projectuid,omitempty"`
 	Card       string `json:"card,omitempty"`
+	InBatch    bool   `json:"inbatch"`
 }
 
 // VerifyErrorReturn error return struct
@@ -63,12 +64,16 @@ func verifyError(projectInfo KeyInfo, cardInfo CardInfo, code int, message strin
 	os.Exit(1)
 }
 
-func verifySuccess(projectInfo KeyInfo, cardInfo CardInfo, filename, hash string, verbose bool) {
+func verifySuccess(projectInfo KeyInfo, cardInfo CardInfo, certificate CertificateInfo, filename, hash string, verbose bool) {
 	if verbose {
 		var r VerifySuccessReturn
 		r.Verified = true
 		r.Filename = filename
 		r.Hash = hash
+		r.InBatch = false
+		if certificate.Batch != "" {
+			r.InBatch = true
+		}
 		r.ProjectUID = projectInfo.KeyUID
 		r.CardUID = cardInfo.UID
 		r.Card = cardInfo.Txt

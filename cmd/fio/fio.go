@@ -175,7 +175,9 @@ func version() {
 func main() {
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate)
 	app.Version(Version).Author(Author)
-	switch kingpin.MustParse(app.Parse(os.Args[1:])) {
+	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
+	fireblocklib.NewStore("default")
+	switch cmd {
 	case signCmd.FullCommand():
 		signFunction()
 	case verifyCmd.FullCommand():
