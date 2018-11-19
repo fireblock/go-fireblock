@@ -104,6 +104,12 @@ func exitError(err error) {
 	}
 }
 
+// SignSuccess return struct
+type SignSuccess struct {
+	Code  int      `json:"code"`
+	Files []string `json:"files,omitempty"`
+}
+
 func signFunction() {
 	// Read the private key (signFio or signKey)
 	var keyuid, privkey string
@@ -127,6 +133,8 @@ func signFunction() {
 	// analyze args
 	data := make(map[string]fireblocklib.Metadata)
 	filepaths := *fsign
+	// list filepath
+	var filesCertified []string
 	for _, filepath := range filepaths {
 		// check if directory or file
 		stat, err := os.Stat(filepath)
@@ -152,6 +160,7 @@ func signFunction() {
 					fmt.Printf("Cannot read metadata on %s\n", f)
 					continue
 				}
+				filesCertified = append(filesCertified, f)
 				data[sha256] = metadata
 			}
 		}
@@ -167,6 +176,7 @@ func signFunction() {
 				fmt.Printf("Cannot read metadata on %s\n", filepath)
 				continue
 			}
+			filesCertified = append(filesCertified, filepath)
 			data[sha256] = metadata
 		}
 	}
@@ -178,7 +188,11 @@ func signFunction() {
 		// one certificat
 		for hash, metadata := range data {
 			signACertificate("", hash, keyuid, privkey, metadata)
-			break
+			var res SignSuccess
+			res.Code = 0
+			res.Files = filesCertified
+			exitSuccess(res, fmt.Sprintf("File(s) certified: %d", len(filesCertified)))
+			return
 		}
 	} else {
 		// a batch
@@ -192,6 +206,11 @@ func signFunction() {
 		hash := fireblocklib.Sha256(batch)
 		metadata := fireblocklib.Metadata{Kind: "b100", Filename: "batch", Size: int64(len(batch)), Type: "application/json"}
 		signACertificate(batch, hash, keyuid, privkey, metadata)
+		var res SignSuccess
+		res.Code = 0
+		res.Files = filesCertified
+		exitSuccess(res, fmt.Sprintf("File(s) certified: %d", len(filesCertified)))
+		return
 	}
 }
 
