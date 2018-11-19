@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	"github.com/fireblock/go-fireblock/fireblocklib"
 	"gopkg.in/alecthomas/kingpin.v2"
@@ -44,6 +45,7 @@ var (
 
 	signCmd    = app.Command("sign", "sign a file")
 	signKey    = signCmd.Flag("key", "private key in base64url").Short('k').Default("").String()
+	signBatch  = signCmd.Flag("batch", "batch name in metadata").Short('b').Default("").String()
 	signFio    = signCmd.Flag("fio", "path to fio file").Short('f').ExistingFile()
 	passphrase = signCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
 	fsign      = signCmd.Arg("file", "File to sign.").Required().ExistingFilesOrDirs()
@@ -204,7 +206,11 @@ func signFunction() {
 		batch := string(b)
 		// compute sha256
 		hash := fireblocklib.Sha256(batch)
-		metadata := fireblocklib.Metadata{Kind: "b100", Filename: "batch", Size: int64(len(batch)), Type: "application/json"}
+		fname := *signBatch
+		if fname == "" {
+			fname = fmt.Sprintf("batch_%s", time.Now().Format("Ymd_H:i:s"))
+		}
+		metadata := fireblocklib.Metadata{Kind: "b100", Filename: fname, Size: int64(len(batch)), Type: "application/json"}
 		signACertificate(batch, hash, keyuid, privkey, metadata)
 		var res SignSuccess
 		res.Code = 0
