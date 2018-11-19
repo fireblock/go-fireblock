@@ -30,7 +30,7 @@ func TestCreateStore(t *testing.T) {
 	DelStore("default")
 }
 
-func TestSetAndGet(t *testing.T) {
+func TestSetStringAndGetString(t *testing.T) {
 	store := NewStore("default")
 	store.SetString("ellis", "my nickname")
 	val := store.GetString("ellis", "")
@@ -39,5 +39,17 @@ func TestSetAndGet(t *testing.T) {
 	assert.Equal(t, val2, "default", "check get default")
 	val3 := store.GetString("ellis", "default")
 	assert.Equal(t, val3, "my nickname", "check get value not default")
+	DelStore("default")
+}
+
+func TestSetBoolAndGetBool(t *testing.T) {
+	store := NewStore("default")
+	store.SetBool("ellis", true)
+	val := store.GetBool("ellis", false)
+	assert.Equal(t, val, true, "check set & get")
+	val2 := store.GetBool("ellis2", true)
+	assert.Equal(t, val2, true, "check get default")
+	val3 := store.GetBool("ellis", true)
+	assert.Equal(t, val3, true, "check get value not default")
 	DelStore("default")
 }

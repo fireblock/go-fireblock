@@ -32,7 +32,7 @@ PLATFORMS = ["windows/amd64", "windows/386", "darwin/amd64", "linux/amd64", "lin
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--platform', help='select a platform')
+    parser.add_argument('-p', '--platform', help='select a platform')
     args = parser.parse_args()
     if args.platform:
         PLATFORMS = [ args.platform ]

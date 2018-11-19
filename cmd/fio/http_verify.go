@@ -19,7 +19,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/fireblock/go-fireblock/fireblocklib"
 )
@@ -51,17 +50,14 @@ func verify(server, filename, hash string, verbose bool) {
 	req := VerifyReq{hash}
 	res, err := Post(url, req)
 	if err != nil {
-		fbkError(err, verbose)
-		os.Exit(1)
+		exitError(err)
 	}
 
 	// parse output
 	var response VerifyValueReturn
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		j, _ := json.Marshal(&res)
-		fmt.Print(string(j))
-		os.Exit(1)
+		exitError(err)
 	}
 
 	// check certificate signature
@@ -77,7 +73,7 @@ func verify(server, filename, hash string, verbose bool) {
 		card = value.Card
 		certificate = value.Certificate
 
-		ck := checkAResult(pkey, key, card, certificate, hash)
+		ck := checkAResult(pkey, key, &card, certificate, hash)
 		if !ck {
 			continue
 		}
@@ -85,10 +81,14 @@ func verify(server, filename, hash string, verbose bool) {
 		break
 	}
 	if validity {
-		verifyExist(pkey, card, filename, hash, verbose)
-		os.Exit(0)
+		var res ProjectVerifySuccess
+		res.Filename = filename
+		res.Card = card
+		res.Certificate = certificate
+		res.PKey = pkey
+		res.Key = key
+		exitSuccess(res, fmt.Sprintf("File %s has been certified by project %s", filename, pkey.KeyUID))
 	} else {
-		verifyError(pkey, card, fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
-		os.Exit(1)
+		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"))
 	}
 }

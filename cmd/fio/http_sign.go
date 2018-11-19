@@ -20,7 +20,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/fireblock/go-fireblock/fireblocklib"
 )
@@ -59,17 +58,14 @@ func createCertificate(server, hash, ktype, keyuid, signature, metadata, metadat
 	req := SignReq{"", hash, ktype, keyuid, signature, metadata, metadataSignature}
 	res, err := Post(url, req)
 	if err != nil {
-		fbkError(err, false)
-		os.Exit(1)
+		exitError(err)
 	}
 
 	// parse output
 	var response CreateCertificateValueReturn
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		j, _ := json.Marshal(&res)
-		fmt.Println(string(j))
-		os.Exit(0)
+		exitError(err)
 	}
 
 	return "success", nil
@@ -84,16 +80,13 @@ func createBatch(server, batch, hash, ktype, keyuid, signature, metadata, metada
 	req := SignReq{batch, hash, ktype, keyuid, signature, metadata, metadataSignature}
 	res, err := Post(url, req)
 	if err != nil {
-		fbkError(err, false)
-		os.Exit(1)
+		exitError(err)
 	}
 	// parse output
 	var response CreateCertificateValueReturn
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		j, _ := json.Marshal(&res)
-		fmt.Println(string(j))
-		os.Exit(0)
+		exitError(err)
 	}
 
 	return "success", nil
@@ -114,23 +107,23 @@ func signACertificate(batch, hash, keyuid, privkey string, metadata fireblocklib
 	if ktype == "pgp" {
 		signature, err = fireblocklib.PGPSign(message, privkey, *passphrase)
 		if err != nil {
-			exit("Can't sign")
+			exitMsgError(fireblocklib.SignError, "PGP error: cannot sign message")
 		}
 		metadataSignature, err = fireblocklib.PGPSign(messageSignature, privkey, *passphrase)
 		if err != nil {
-			exit("Can't sign")
+			exitMsgError(fireblocklib.SignError, "PGP error: cannot sign metadata")
 		}
 	} else if ktype == "ecdsa" {
 		signature, err = fireblocklib.ECDSASign(privkey, message)
 		if err != nil {
-			exit("Can't sign")
+			exitMsgError(fireblocklib.SignError, "ECDSA error: cannot sign message")
 		}
 		metadataSignature, err = fireblocklib.ECDSASign(privkey, messageSignature)
 		if err != nil {
-			exit("Can't sign")
+			exitMsgError(fireblocklib.SignError, "ECDSA error: cannot sign metadata")
 		}
 	} else {
-		exit(fmt.Sprintf("Invalid key format %s\n", ktype))
+		exitMsgError(fireblocklib.SignError, fmt.Sprintf("Invalid key format %s\n", ktype))
 	}
 	// sign
 	if batch == "" {
@@ -140,6 +133,6 @@ func signACertificate(batch, hash, keyuid, privkey string, metadata fireblocklib
 	}
 	if err != nil {
 		fmt.Println(err)
-		exit("Can't sign")
+		exitMsgError(fireblocklib.SignError, "unknown")
 	}
 }

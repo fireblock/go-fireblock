@@ -74,6 +74,7 @@ func Post(url string, param interface{}) (json.RawMessage, error) {
 	return response.Data, nil
 }
 
+// Get Request
 func Get() {
 
 }

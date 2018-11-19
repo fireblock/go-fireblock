@@ -20,8 +20,7 @@ package fireblocklib
 
 // Errors
 const (
-	None        = 100
-	InvalidType = 200
+	None = 0
 
 	InvalidAuthentication = 300
 	InvalidKey            = 301
@@ -30,22 +29,23 @@ const (
 	InvalidSignature      = 304
 	InvalidPassphrase     = 305
 	InvalidProject        = 306
+	InvalidHash           = 307
 	InvalidFile           = 310
 	InvalidJSON           = 320
 	InvalidEncoding       = 321
+	NetworkError          = 330
+	NetworkError404       = 331
+	NoFile                = 332
+	SignError             = 340
 	APIError              = 350
+	AlreadyExist          = 360
 
-	NetworkError    = 400
-	NetworkError404 = 404
+	UnknownError    = 390
+	UnknownElement  = 391
+	UnknownProvider = 392
 
-	AlreadyExist = 500
-
-	UnknownError    = 600
-	UnknownElement  = 601
-	UnknownProvider = 602
-
-	EthOpError      = 800
-	EthNotEnoughGas = 801
+	EthOpError      = 500
+	EthNotEnoughGas = 501
 
 	NotYetImplemented = 999
 )

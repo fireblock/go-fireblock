@@ -37,18 +37,71 @@ var (
 	userID    = verifyCmd.Flag("user-id", "Set user id").Short('u').Default("").String()
 	fverify   = verifyCmd.Arg("file", "File to verify.").Required().ExistingFile()
 
+	verifyHashCmd = app.Command("verify-hash", "verify a sha256 like 0x004e...5c2")
+	vhProjectID   = verifyHashCmd.Flag("project-id", "Set project id").Short('p').Default("0x0").String()
+	vhUserID      = verifyHashCmd.Flag("user-id", "Set user id").Short('u').Default("").String()
+	vhHash        = verifyHashCmd.Arg("file", "File to verify.").Required().String()
+
 	signCmd    = app.Command("sign", "sign a file")
 	signKey    = signCmd.Flag("key", "private key in base64url").Short('k').Default("").String()
 	signFio    = signCmd.Flag("fio", "path to fio file").Short('f').ExistingFile()
 	passphrase = signCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
 	fsign      = signCmd.Arg("file", "File to sign.").Required().ExistingFilesOrDirs()
 
-	versionCmd = app.Command("version", "versio of fio (https://fireblock.io)")
+	versionCmd = app.Command("version", "version of fio (https://fireblock.io)")
 )
 
-func exit(msg string) {
-	fmt.Printf("%s\n", msg)
-	os.Exit(1)
+func exitSuccess(data interface{}, msg string) {
+	store := fireblocklib.GetStore("default")
+	if verbose := store.GetBool("verbose", false); verbose {
+		export, _ := json.Marshal(data)
+		fmt.Printf("%s\n", export)
+		os.Exit(0)
+	} else {
+		fmt.Printf("%s\n", msg)
+		os.Exit(0)
+	}
+}
+
+func exitJSONError(data interface{}, code int, msg string) {
+	store := fireblocklib.GetStore("default")
+	if verbose := store.GetBool("verbose", false); verbose {
+		export, _ := json.Marshal(data)
+		fmt.Printf("%s\n", export)
+		os.Exit(code)
+	} else {
+		fmt.Printf("%s\n", msg)
+		os.Exit(code)
+	}
+}
+
+// ErrorReturn error return struct
+type ErrorReturn struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+}
+
+func exitMsgError(code int, msg string) {
+	store := fireblocklib.GetStore("default")
+	if verbose := store.GetBool("verbose", false); verbose {
+		var data ErrorReturn
+		data.Code = code
+		data.Message = msg
+		export, _ := json.Marshal(data)
+		fmt.Printf("%s\n", export)
+		os.Exit(code)
+	} else {
+		fmt.Printf("%s\n", msg)
+		os.Exit(code)
+	}
+}
+
+func exitError(err error) {
+	if e, ok := err.(*fireblocklib.FBKError); ok {
+		exitMsgError(e.Type(), e.Error())
+	} else {
+		exitMsgError(fireblocklib.UnknownError, err.Error())
+	}
 }
 
 func signFunction() {
@@ -57,18 +110,18 @@ func signFunction() {
 	var err error
 	// check fio file
 	if (signFio == nil || *signFio == "") && (*signKey == "") {
-		exit("Missing private key! add --fio filepath or --key privatekey")
+		exitMsgError(fireblocklib.NoFile, "Missing private key! add --fio filepath or --key privatekey")
 	} else if signFio != nil && len(*signFio) > 1 {
 		keypath := *signFio
 		// load fio file
 		_, keyuid, privkey, _, err = fireblocklib.LoadFioFile(keypath)
 		if err != nil {
-			exit("Invalid fio file")
+			exitMsgError(fireblocklib.InvalidFile, "Invalid fio file")
 		}
 	} else if signKey != nil && len(*signKey) > 1 {
 		keyuid, privkey, err = fireblocklib.LoadB64U(*signKey)
 	} else {
-		exit("Missing private key! add --fio filepath or --key privatekey with correct values")
+		exitMsgError(fireblocklib.NoFile, "Missing private key! add --fio filepath or --key privatekey with correct values")
 	}
 
 	// analyze args
@@ -118,11 +171,9 @@ func signFunction() {
 		}
 	}
 	if len(data) <= 0 {
-		fmt.Printf("Nothing to sign\n")
-		os.Exit(1)
+		exitMsgError(fireblocklib.NoFile, "Nothing to sign")
 	} else if len(data) > 128 {
-		fmt.Printf("Batch limitted to 128 objects\n")
-		os.Exit(1)
+		exitMsgError(fireblocklib.NoFile, "Batch limitted to 128 objects")
 	} else if len(data) == 1 {
 		// one certificat
 		for hash, metadata := range data {
@@ -146,14 +197,13 @@ func signFunction() {
 
 func verifyFunction() {
 	if fverify == nil {
-		exit("Missing file")
+		exitMsgError(fireblocklib.NoFile, "Missing file")
 	}
 	filepath := *fverify
 	filename := path.Base(filepath)
 	sha256, err := fireblocklib.Sha256File(filepath)
 	if err != nil {
-		fmt.Printf("Cannot compute sha256 on %s\n", filepath)
-		os.Exit(1)
+		exitMsgError(fireblocklib.InvalidHash, fmt.Sprintf("Cannot compute sha256 on %s", filepath))
 	}
 	if *userID != "" {
 		// verify by useruid
@@ -167,24 +217,56 @@ func verifyFunction() {
 	}
 }
 
+func verifyHashFunction() {
+	sha256 := *vhHash
+	if !fireblocklib.IsSha256(sha256) {
+		exitMsgError(fireblocklib.InvalidHash, "Invalid Hash")
+	}
+	if *vhUserID != "" {
+		// verify by useruid
+		userVerify(*server, "", sha256, *vhUserID, *jverbose)
+	} else if *vhProjectID != "0x0" {
+		// verify by cardId
+		projectVerify(*server, "", sha256, *vhProjectID, *jverbose)
+	} else {
+		// verify with the first key to register that hash
+		verify(*server, "", sha256, *jverbose)
+	}
+}
+
+// VersionReturn success data
+type VersionReturn struct {
+	Version string `json:"version,omitempty"`
+	Message string `json:"message,omitempty"`
+	Code    int    `json:"code"`
+}
+
 func version() {
-	fmt.Printf("fio %s ( info at https://fireblock.io )\n", Version)
-	os.Exit(0)
+	var res VersionReturn
+	res.Code = 0
+	res.Version = Version
+	res.Message = fmt.Sprintf("fio %s ( info at https://fireblock.io )", Version)
+	exitSuccess(res, res.Message)
 }
 
 func main() {
+	// check arguments
 	kingpin.UsageTemplate(kingpin.CompactUsageTemplate)
 	app.Version(Version).Author(Author)
 	cmd := kingpin.MustParse(app.Parse(os.Args[1:]))
-	fireblocklib.NewStore("default")
+	// read parsing
+	store := fireblocklib.NewStore("default")
+	store.SetBool("verbose", *jverbose)
+	store.SetString("serverURL", *server)
+	// do the command
 	switch cmd {
 	case signCmd.FullCommand():
 		signFunction()
 	case verifyCmd.FullCommand():
 		verifyFunction()
+	case verifyHashCmd.FullCommand():
+		verifyHashFunction()
 	case versionCmd.FullCommand():
 		version()
-	default:
-		exit("unknown command. Use --help")
 	}
 }

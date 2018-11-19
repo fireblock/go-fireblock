@@ -17,92 +17,12 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
 
 	"github.com/fireblock/go-fireblock/fireblocklib"
 )
 
-// VerifySuccessReturn success data
-type VerifySuccessReturn struct {
-	Verified   bool   `json:"verified"`
-	Hash       string `json:"hash"`
-	Filename   string `json:"filename"`
-	UserUID    string `json:"useruid,omitempty"`
-	CardUID    string `json:"carduid,omitempty"`
-	ProjectUID string `json:"projectuid,omitempty"`
-	Card       string `json:"card,omitempty"`
-	InBatch    bool   `json:"inbatch"`
-}
-
-// VerifyErrorReturn error return struct
-type VerifyErrorReturn struct {
-	Error      string `json:"error"`
-	Detail     string `json:"detail"`
-	Hash       string `json:"hash,omitempty"`
-	Filename   string `json:"filename,omitempty"`
-	UserID     string `json:"useruid,omitempty"`
-	CardID     string `json:"carduid,omitempty"`
-	ProjectUID string `json:"projectuid,omitempty"`
-}
-
-func verifyError(projectInfo KeyInfo, cardInfo CardInfo, code int, message string, verbose bool) {
-	if verbose {
-		var r VerifyErrorReturn
-		r.Error = strconv.Itoa(code)
-		r.Detail = message
-		if projectInfo.Status != "ok" {
-			r.ProjectUID = projectInfo.KeyUID
-		}
-		export, _ := json.Marshal(r)
-		fmt.Printf("%s\n", export)
-	} else {
-		fmt.Printf("error %d: %s\n", code, message)
-	}
-	os.Exit(1)
-}
-
-func verifySuccess(projectInfo KeyInfo, cardInfo CardInfo, certificate CertificateInfo, filename, hash string, verbose bool) {
-	if verbose {
-		var r VerifySuccessReturn
-		r.Verified = true
-		r.Filename = filename
-		r.Hash = hash
-		r.InBatch = false
-		if certificate.Batch != "" {
-			r.InBatch = true
-		}
-		r.ProjectUID = projectInfo.KeyUID
-		r.CardUID = cardInfo.UID
-		r.Card = cardInfo.Txt
-		export, _ := json.Marshal(r)
-		fmt.Printf("%s\n", export)
-	} else {
-		fmt.Printf("VALID FILE\n")
-	}
-	os.Exit(0)
-}
-
-func verifyExist(projectInfo KeyInfo, cardInfo CardInfo, filename, hash string, verbose bool) {
-	if verbose {
-		var r VerifySuccessReturn
-		r.Verified = true
-		r.Filename = filename
-		r.Hash = hash
-		r.ProjectUID = projectInfo.KeyUID
-		r.CardUID = cardInfo.UID
-		r.Card = cardInfo.Txt
-		export, _ := json.Marshal(r)
-		fmt.Printf("%s\n", export)
-	} else {
-		fmt.Printf("FILE SIGNED by %s (card: %s)\n", projectInfo.KeyUID, cardInfo.Txt)
-	}
-	os.Exit(0)
-}
-
-func checkAResult(pkey, key KeyInfo, card CardInfo, certificate CertificateInfo, hash string) bool {
+func checkAResult(pkey, key KeyInfo, card *CardInfo, certificate CertificateInfo, hash string) bool {
 	certificateHash := hash
 	if certificate.Hash != hash {
 		certificateHash = certificate.Hash
@@ -129,9 +49,39 @@ func checkAResult(pkey, key KeyInfo, card CardInfo, certificate CertificateInfo,
 			return false
 		}
 		// check card
-		_, err3 := fireblocklib.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
+		pstates, err3 := fireblocklib.VerifyCard(card.Txt, pkey.KeyUID, pkey.KType)
 		if err3 != nil {
 			return false
+		}
+		// update card
+		card.Status = "ok"
+		if pstates.Twitter.Status == "ok" {
+			card.Twitter.Status = "ok"
+			card.Twitter.Proof = pstates.Twitter.Proof
+			card.Twitter.UID = pstates.Twitter.UID
+		} else {
+			card.Twitter.Status = "none"
+		}
+		if pstates.Github.Status == "ok" {
+			card.Github.Status = "ok"
+			card.Github.Proof = pstates.Github.Proof
+			card.Github.UID = pstates.Github.UID
+		} else {
+			card.Github.Status = "none"
+		}
+		if pstates.Linkedin.Status == "ok" {
+			card.Linkedin.Status = "ok"
+			card.Linkedin.Proof = pstates.Linkedin.Proof
+			card.Linkedin.UID = pstates.Linkedin.UID
+		} else {
+			card.Linkedin.Status = "none"
+		}
+		if pstates.Https.Status == "ok" {
+			card.HTTPS.Status = "ok"
+			card.HTTPS.Proof = pstates.Https.Proof
+			card.HTTPS.UID = pstates.Https.UID
+		} else {
+			card.HTTPS.Status = "none"
 		}
 	}
 

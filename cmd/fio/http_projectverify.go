@@ -19,20 +19,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/fireblock/go-fireblock/fireblocklib"
 )
-
-func fbkError(err error, verbose bool) {
-	e := err.(*fireblocklib.FBKError)
-	if e != nil {
-		fmt.Printf("code: %d detail: %s\n", e.Type(), e.Error())
-		os.Exit(1)
-	}
-	fmt.Printf(err.Error())
-	os.Exit(1)
-}
 
 func convertPS2CIP(ps fireblocklib.ProviderState) (cip CardInfoProvider) {
 	cip.UID = ps.UID
@@ -67,6 +56,15 @@ type ProjectVerifyReq struct {
 	ProjectUID string `json:"projectuid"`
 }
 
+// ProjectVerifySuccess result
+type ProjectVerifySuccess struct {
+	Filename    string          `json:"filename"`
+	Key         KeyInfo         `json:"key"`
+	Certificate CertificateInfo `json:"certificate"`
+	Card        CardInfo        `json:"card"`
+	PKey        KeyInfo         `json:"pkey"`
+}
+
 func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 	// create url request
 	SetServerURL(server)
@@ -76,17 +74,14 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 	req := ProjectVerifyReq{hash, pkeyUID}
 	res, err := Post(url, req)
 	if err != nil {
-		fbkError(err, verbose)
-		os.Exit(1)
+		exitError(err)
 	}
 
 	// parse output
 	var response ProjectVerifyValueReturn
 	err = json.Unmarshal(res, &response)
 	if err != nil {
-		j, _ := json.Marshal(&res)
-		fmt.Print(string(j))
-		os.Exit(1)
+		exitError(err)
 	}
 
 	var pkey, key KeyInfo
@@ -101,7 +96,7 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		pkey = value.PKey
 		card = value.Card
 
-		ck := checkAResult(pkey, key, card, certificate, hash)
+		ck := checkAResult(pkey, key, &card, certificate, hash)
 		if !ck {
 			continue
 		}
@@ -109,10 +104,17 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		break
 	}
 	if validity {
-		verifySuccess(pkey, card, certificate, filename, hash, verbose)
-		os.Exit(0)
+		var res ProjectVerifySuccess
+		res.Filename = filename
+		res.Card = card
+		res.Certificate = certificate
+		res.PKey = pkey
+		res.Key = key
+		exitSuccess(res, fmt.Sprintf("File %s has been certified by project %s", filename, pkey.KeyUID))
 	} else {
-		verifyError(pkey, card, fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"), verbose)
-		os.Exit(1)
+		if pkey.KeyUID == "" {
+			exitMsgError(fireblocklib.InvalidProject, "Invalid project")
+		}
+		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"))
 	}
 }

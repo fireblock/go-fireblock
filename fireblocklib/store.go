@@ -20,7 +20,7 @@ var stores map[string]*Store
 
 // Store object
 type Store struct {
-	states map[string]string
+	states map[string]interface{}
 }
 
 // NewStore initialize states
@@ -31,7 +31,7 @@ func NewStore(name string) *Store {
 	store := stores[name]
 	if store == nil {
 		st := new(Store)
-		st.states = make(map[string]string)
+		st.states = make(map[string]interface{})
 		stores[name] = st
 		return st
 	}
@@ -52,12 +52,32 @@ func DelStore(name string) {
 func (store *Store) GetString(key, def string) string {
 	val, ok := store.states[key]
 	if ok {
-		return val
+		if v, ok := val.(string); ok {
+			return v
+		}
+		return def
 	}
 	return def
 }
 
 // SetString sets or overwrites a value
 func (store *Store) SetString(key, value string) {
+	store.states[key] = value
+}
+
+// GetBool returns value or def if no value
+func (store *Store) GetBool(key string, def bool) bool {
+	val, ok := store.states[key]
+	if ok {
+		if v, ok := val.(bool); ok {
+			return v
+		}
+		return def
+	}
+	return def
+}
+
+// SetBool sets or overwrites a value
+func (store *Store) SetBool(key string, value bool) {
 	store.states[key] = value
 }
