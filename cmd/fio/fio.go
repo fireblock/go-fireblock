@@ -208,7 +208,14 @@ func signFunction() {
 		hash := fireblocklib.Sha256(batch)
 		fname := *signBatch
 		if fname == "" {
-			fname = fmt.Sprintf("batch_%s", time.Now().Format("Ymd_H:i:s"))
+			t := time.Now()
+			y := t.Year()
+			mon := int(t.Month())
+			d := t.Day()
+			h := t.Hour()
+			m := t.Minute()
+			s := t.Second()
+			fname = fmt.Sprintf("batch_%d%d%d_%d:%d:%d", y, mon, d, h, m, s)
 		}
 		metadata := fireblocklib.Metadata{Kind: "b100", Filename: fname, Size: int64(len(batch)), Type: "application/json"}
 		signACertificate(batch, hash, keyuid, privkey, metadata)
