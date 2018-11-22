@@ -68,7 +68,7 @@ func Post(url string, param interface{}) (json.RawMessage, *fireblocklib.FBKErro
 	// check result
 	if len(response.Errors) > 0 {
 		if response.Errors[0].ID == "already exists" {
-			return nil, fireblocklib.NewFBKError(response.Errors[0].Detail, fireblocklib.AlreadyExist)
+			return nil, fireblocklib.NewFBKError("already certified", fireblocklib.AlreadyExist)
 		}
 		message := fmt.Sprintf("Error %d: %s\n", res.StatusCode, response.Errors[0].ID)
 		message += fmt.Sprintf("Detail: %s", response.Errors[0].Detail)
