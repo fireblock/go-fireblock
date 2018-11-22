@@ -35,7 +35,7 @@ type SignReq struct {
 	MetadataSignature string `json:"metadataSignature"`
 }
 
-// Batch
+// Batch batch
 type Batch struct {
 	Kind     string `json:"kind"`
 	Filename string `json:"filename"`
@@ -53,6 +53,7 @@ type CreateCertificateValueReturn struct {
 type SignError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
+	Batch   string `json:"batch,omitempty"`
 	Hash    string `json:"hash,omitempty"`
 	KType   string `json:"ktype,omitempty"`
 	Keyuid  string `json:"keyuid,omitempty"`
@@ -65,19 +66,18 @@ func createCertificate(server, hash, ktype, keyuid, signature, metadata, metadat
 
 	// json inputs + request
 	req := SignReq{"", hash, ktype, keyuid, signature, metadata, metadataSignature}
-	res, err := Post(url, req)
-	if e, ok := err.(*fireblocklib.FBKError); ok {
-		se := SignError{e.Type(), e.Error(), hash, ktype, keyuid}
-		exitJSONError(se, e.Type(), e.Error())
-	} else {
-		exitError(err)
+	res, efbk := Post(url, req)
+	if efbk != nil {
+		se := SignError{efbk.Type(), efbk.Error(), "", hash, ktype, keyuid}
+		exitJSONError(se, efbk.Type(), efbk.Error())
 	}
 
 	// parse output
 	var response CreateCertificateValueReturn
-	err = json.Unmarshal(res, &response)
+	err := json.Unmarshal(res, &response)
 	if err != nil {
-		exitError(err)
+		se := SignError{fireblocklib.InvalidEncoding, err.Error(), "", hash, ktype, keyuid}
+		exitJSONError(se, fireblocklib.InvalidEncoding, err.Error())
 	}
 
 	return "success", nil
@@ -90,15 +90,18 @@ func createBatch(server, batch, hash, ktype, keyuid, signature, metadata, metada
 
 	// json inputs + request
 	req := SignReq{batch, hash, ktype, keyuid, signature, metadata, metadataSignature}
-	res, err := Post(url, req)
-	if err != nil {
-		exitError(err)
+	res, efbk := Post(url, req)
+	if efbk != nil {
+		se := SignError{efbk.Type(), efbk.Error(), batch, hash, ktype, keyuid}
+		exitJSONError(se, efbk.Type(), efbk.Error())
 	}
+
 	// parse output
 	var response CreateCertificateValueReturn
-	err = json.Unmarshal(res, &response)
+	err := json.Unmarshal(res, &response)
 	if err != nil {
-		exitError(err)
+		se := SignError{fireblocklib.InvalidEncoding, err.Error(), batch, hash, ktype, keyuid}
+		exitJSONError(se, fireblocklib.InvalidEncoding, err.Error())
 	}
 
 	return "success", nil
@@ -119,23 +122,29 @@ func signACertificate(batch, hash, keyuid, privkey string, metadata fireblocklib
 	if ktype == "pgp" {
 		signature, err = fireblocklib.PGPSign(message, privkey, *passphrase)
 		if err != nil {
-			exitMsgError(fireblocklib.SignError, "PGP error: cannot sign message")
+			se := SignError{fireblocklib.SignError, "PGP error: cannot sign message", batch, hash, ktype, keyuid}
+			exitJSONError(se, fireblocklib.InvalidEncoding, "PGP error: cannot sign message")
 		}
 		metadataSignature, err = fireblocklib.PGPSign(messageSignature, privkey, *passphrase)
 		if err != nil {
-			exitMsgError(fireblocklib.SignError, "PGP error: cannot sign metadata")
+			se := SignError{fireblocklib.SignError, "PGP error: cannot sign metadata", batch, hash, ktype, keyuid}
+			exitJSONError(se, fireblocklib.InvalidEncoding, "PGP error: cannot sign metadata")
 		}
 	} else if ktype == "ecdsa" {
 		signature, err = fireblocklib.ECDSASign(privkey, message)
 		if err != nil {
-			exitMsgError(fireblocklib.SignError, "ECDSA error: cannot sign message")
+			se := SignError{fireblocklib.SignError, "ECDSA error: cannot sign message", batch, hash, ktype, keyuid}
+			exitJSONError(se, fireblocklib.InvalidEncoding, "ECDSA error: cannot sign message")
 		}
 		metadataSignature, err = fireblocklib.ECDSASign(privkey, messageSignature)
 		if err != nil {
-			exitMsgError(fireblocklib.SignError, "ECDSA error: cannot sign metadata")
+			se := SignError{fireblocklib.SignError, "ECDSA error: cannot sign metadata", batch, hash, ktype, keyuid}
+			exitJSONError(se, fireblocklib.InvalidEncoding, "ECDSA error: cannot sign metadata")
 		}
 	} else {
-		exitMsgError(fireblocklib.SignError, fmt.Sprintf("Invalid key format %s\n", ktype))
+		msg := fmt.Sprintf("Invalid key format %s\n", ktype)
+		se := SignError{fireblocklib.SignError, msg, batch, hash, ktype, keyuid}
+		exitJSONError(se, fireblocklib.InvalidEncoding, msg)
 	}
 	// sign
 	if batch == "" {
@@ -145,6 +154,7 @@ func signACertificate(batch, hash, keyuid, privkey string, metadata fireblocklib
 	}
 	if err != nil {
 		fmt.Println(err)
-		exitMsgError(fireblocklib.SignError, "unknown")
+		se := SignError{fireblocklib.SignError, "unknown error", batch, hash, ktype, keyuid}
+		exitJSONError(se, fireblocklib.InvalidEncoding, "unknown error")
 	}
 }

@@ -49,6 +49,15 @@ type UserVerifyReq struct {
 	UserUID string `json:"useruuid"`
 }
 
+// UserVerifyError project verify
+type UserVerifyError struct {
+	Code     int    `json:"code"`
+	Message  string `json:"message"`
+	Filename string `json:"filename,omitempty"`
+	Hash     string `json:"hash,omitempty"`
+	Useruid  string `json:"useruid,omitempty"`
+}
+
 func userVerify(server, filename, hash string, useruid string, verbose bool) {
 	// create url request
 	SetServerURL(server)
@@ -56,16 +65,18 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 
 	// json inputs + request
 	req := UserVerifyReq{hash, useruid}
-	res, err := Post(url, req)
-	if err != nil {
-		exitError(err)
+	res, efbk := Post(url, req)
+	if efbk != nil {
+		se := UserVerifyError{efbk.Type(), efbk.Error(), filename, hash, useruid}
+		exitJSONError(se, efbk.Type(), efbk.Error())
 	}
 
 	// parse output
 	var response UserVerifyValueReturn
-	err = json.Unmarshal(res, &response)
+	err := json.Unmarshal(res, &response)
 	if err != nil {
-		exitError(err)
+		se := UserVerifyError{fireblocklib.InvalidEncoding, err.Error(), filename, hash, useruid}
+		exitJSONError(se, fireblocklib.InvalidEncoding, err.Error())
 	}
 
 	// check certificate signature
@@ -97,6 +108,7 @@ func userVerify(server, filename, hash string, useruid string, verbose bool) {
 		res.Key = key
 		exitSuccess(res, fmt.Sprintf("File %s has been certified by user %s", filename, useruid))
 	} else {
-		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("file not certified on fireblock"))
+		se := UserVerifyError{fireblocklib.InvalidFile, "file not certified on fireblock", filename, hash, useruid}
+		exitJSONError(se, fireblocklib.InvalidFile, "file not certified on fireblock")
 	}
 }

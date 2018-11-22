@@ -41,6 +41,14 @@ type VerifyReq struct {
 	Hash string `json:"hash"`
 }
 
+// VerifyError project verify
+type VerifyError struct {
+	Code     int    `json:"code"`
+	Message  string `json:"message"`
+	Filename string `json:"filename,omitempty"`
+	Hash     string `json:"hash,omitempty"`
+}
+
 func verify(server, filename, hash string, verbose bool) {
 	// create url request
 	SetServerURL(server)
@@ -48,16 +56,18 @@ func verify(server, filename, hash string, verbose bool) {
 
 	// json inputs + request
 	req := VerifyReq{hash}
-	res, err := Post(url, req)
-	if err != nil {
-		exitError(err)
+	res, efbk := Post(url, req)
+	if efbk != nil {
+		se := VerifyError{efbk.Type(), efbk.Error(), filename, hash}
+		exitJSONError(se, efbk.Type(), efbk.Error())
 	}
 
 	// parse output
 	var response VerifyValueReturn
-	err = json.Unmarshal(res, &response)
+	err := json.Unmarshal(res, &response)
 	if err != nil {
-		exitError(err)
+		se := VerifyError{fireblocklib.InvalidEncoding, err.Error(), filename, hash}
+		exitJSONError(se, fireblocklib.InvalidEncoding, err.Error())
 	}
 
 	// check certificate signature
@@ -89,6 +99,7 @@ func verify(server, filename, hash string, verbose bool) {
 		res.Key = key
 		exitSuccess(res, fmt.Sprintf("File %s has been certified by project %s", filename, pkey.KeyUID))
 	} else {
-		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("file not certified on fireblock"))
+		se := VerifyError{fireblocklib.InvalidFile, "file not certified on fireblock", filename, hash}
+		exitJSONError(se, fireblocklib.InvalidFile, "file not certified on fireblock")
 	}
 }

@@ -65,6 +65,15 @@ type ProjectVerifySuccess struct {
 	PKey        KeyInfo         `json:"pkey"`
 }
 
+// ProjectVerifyError project verify
+type ProjectVerifyError struct {
+	Code     int    `json:"code"`
+	Message  string `json:"message"`
+	Filename string `json:"filename,omitempty"`
+	Hash     string `json:"hash,omitempty"`
+	PKeyuid  string `json:"pkeyuid,omitempty"`
+}
+
 func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 	// create url request
 	SetServerURL(server)
@@ -72,16 +81,18 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 
 	// json inputs + request
 	req := ProjectVerifyReq{hash, pkeyUID}
-	res, err := Post(url, req)
-	if err != nil {
-		exitError(err)
+	res, efbk := Post(url, req)
+	if efbk != nil {
+		se := ProjectVerifyError{efbk.Type(), efbk.Error(), filename, hash, pkeyUID}
+		exitJSONError(se, efbk.Type(), efbk.Error())
 	}
 
 	// parse output
 	var response ProjectVerifyValueReturn
-	err = json.Unmarshal(res, &response)
+	err := json.Unmarshal(res, &response)
 	if err != nil {
-		exitError(err)
+		se := ProjectVerifyError{fireblocklib.InvalidEncoding, err.Error(), filename, hash, pkeyUID}
+		exitJSONError(se, fireblocklib.InvalidEncoding, err.Error())
 	}
 
 	var pkey, key KeyInfo
@@ -113,8 +124,10 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		exitSuccess(res, fmt.Sprintf("File %s has been certified by project %s", filename, pkey.KeyUID))
 	} else {
 		if pkey.KeyUID == "" {
-			exitMsgError(fireblocklib.InvalidProject, "Invalid project")
+			se := ProjectVerifyError{fireblocklib.InvalidProject, "Invalid project", filename, hash, pkeyUID}
+			exitJSONError(se, fireblocklib.InvalidProject, "Invalid project")
 		}
-		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("file not certified on fireblock"))
+		se := ProjectVerifyError{fireblocklib.InvalidFile, "file not certified on fireblock", filename, hash, pkeyUID}
+		exitJSONError(se, fireblocklib.InvalidFile, "file not certified on fireblock")
 	}
 }

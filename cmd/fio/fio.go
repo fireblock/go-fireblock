@@ -99,14 +99,6 @@ func exitMsgError(code int, msg string) {
 	}
 }
 
-func exitError(err error) {
-	if e, ok := err.(*fireblocklib.FBKError); ok {
-		exitMsgError(e.Type(), e.Error())
-	} else {
-		exitMsgError(fireblocklib.UnknownError, err.Error())
-	}
-}
-
 // SignSuccess return struct
 type SignSuccess struct {
 	Code  int      `json:"code"`

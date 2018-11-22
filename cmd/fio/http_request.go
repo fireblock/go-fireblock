@@ -46,7 +46,7 @@ func CreateURL(uri string) string {
 }
 
 // Post request
-func Post(url string, param interface{}) (json.RawMessage, error) {
+func Post(url string, param interface{}) (json.RawMessage, *fireblocklib.FBKError) {
 	buffer := new(bytes.Buffer)
 	json.NewEncoder(buffer).Encode(param)
 	res, err := http.Post(url, "application/json; charset=utf-8", buffer)
