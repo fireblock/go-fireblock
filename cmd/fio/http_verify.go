@@ -89,6 +89,6 @@ func verify(server, filename, hash string, verbose bool) {
 		res.Key = key
 		exitSuccess(res, fmt.Sprintf("File %s has been certified by project %s", filename, pkey.KeyUID))
 	} else {
-		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"))
+		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("file not certified on fireblock"))
 	}
 }

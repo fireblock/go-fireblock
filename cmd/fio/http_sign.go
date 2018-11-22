@@ -49,6 +49,15 @@ type CreateCertificateValueReturn struct {
 	Value string `json:"value"`
 }
 
+// SignError signature error
+type SignError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
+	Hash    string `json:"hash,omitempty"`
+	KType   string `json:"ktype,omitempty"`
+	Keyuid  string `json:"keyuid,omitempty"`
+}
+
 func createCertificate(server, hash, ktype, keyuid, signature, metadata, metadataSignature string) (string, error) {
 	// create url request
 	SetServerURL(server)
@@ -57,7 +66,10 @@ func createCertificate(server, hash, ktype, keyuid, signature, metadata, metadat
 	// json inputs + request
 	req := SignReq{"", hash, ktype, keyuid, signature, metadata, metadataSignature}
 	res, err := Post(url, req)
-	if err != nil {
+	if e, ok := err.(*fireblocklib.FBKError); ok {
+		se := SignError{e.Type(), e.Error(), hash, ktype, keyuid}
+		exitJSONError(se, e.Type(), e.Error())
+	} else {
 		exitError(err)
 	}
 

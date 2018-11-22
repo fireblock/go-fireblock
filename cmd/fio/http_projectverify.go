@@ -115,6 +115,6 @@ func projectVerify(server, filename, hash, pkeyUID string, verbose bool) {
 		if pkey.KeyUID == "" {
 			exitMsgError(fireblocklib.InvalidProject, "Invalid project")
 		}
-		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("Not a valid file"))
+		exitMsgError(fireblocklib.InvalidFile, fmt.Sprintf("file not certified on fireblock"))
 	}
 }

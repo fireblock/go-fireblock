@@ -22,32 +22,32 @@ package fireblocklib
 const (
 	None = 0
 
-	InvalidAuthentication = 300
-	InvalidKey            = 301
-	InvalidCard           = 302
-	InvalidProof          = 303
-	InvalidSignature      = 304
-	InvalidPassphrase     = 305
-	InvalidProject        = 306
-	InvalidHash           = 307
-	InvalidFile           = 310
-	InvalidJSON           = 320
-	InvalidEncoding       = 321
-	NetworkError          = 330
-	NetworkError404       = 331
-	NoFile                = 332
-	SignError             = 340
-	APIError              = 350
-	AlreadyExist          = 360
+	InvalidAuthentication = 10
+	InvalidKey            = 11
+	InvalidCard           = 12
+	InvalidProof          = 13
+	InvalidSignature      = 14
+	InvalidPassphrase     = 15
+	InvalidProject        = 16
+	InvalidHash           = 17
+	InvalidFile           = 18
+	InvalidJSON           = 19
+	InvalidEncoding       = 21
+	NetworkError          = 30
+	NetworkError404       = 31
+	NoFile                = 32
+	SignError             = 40
+	APIError              = 50
+	AlreadyExist          = 60
 
-	UnknownError    = 390
-	UnknownElement  = 391
-	UnknownProvider = 392
+	UnknownError    = 90
+	UnknownElement  = 91
+	UnknownProvider = 92
 
-	EthOpError      = 500
-	EthNotEnoughGas = 501
+	EthOpError      = 100
+	EthNotEnoughGas = 101
 
-	NotYetImplemented = 999
+	NotYetImplemented = 127
 )
 
 // FBKError struct

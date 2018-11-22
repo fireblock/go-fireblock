@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"time"
 
 	"github.com/fireblock/go-fireblock/fireblocklib"
@@ -198,8 +199,15 @@ func signFunction() {
 		}
 	} else {
 		// a batch
+		// sort keys
+		var keys []string
+		for k := range data {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
 		var batchArray []fireblocklib.BatchElem
-		for hash, metadata := range data {
+		for _, hash := range keys {
+			metadata := data[hash]
 			batchArray = append(batchArray, fireblocklib.BatchElem{Hash: hash, Filename: metadata.Filename, Size: metadata.Size, Type: metadata.Type})
 		}
 		b, _ := json.Marshal(&batchArray)
