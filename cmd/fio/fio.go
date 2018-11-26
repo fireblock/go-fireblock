@@ -102,6 +102,7 @@ func exitMsgError(code int, msg string) {
 // SignSuccess return struct
 type SignSuccess struct {
 	Code  int      `json:"code"`
+	Hash  string   `json:"hash,omitempty"`
 	Files []string `json:"files,omitempty"`
 }
 
@@ -185,6 +186,7 @@ func signFunction() {
 			signACertificate("", hash, keyuid, privkey, metadata)
 			var res SignSuccess
 			res.Code = 0
+			res.Hash = hash
 			res.Files = filesCertified
 			exitSuccess(res, fmt.Sprintf("File(s) certified: %d", len(filesCertified)))
 			return
@@ -221,6 +223,7 @@ func signFunction() {
 		signACertificate(batch, hash, keyuid, privkey, metadata)
 		var res SignSuccess
 		res.Code = 0
+		res.Hash = hash
 		res.Files = filesCertified
 		exitSuccess(res, fmt.Sprintf("File(s) certified: %d", len(filesCertified)))
 		return
