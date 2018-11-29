@@ -34,7 +34,7 @@ var (
 	jverbose = app.Flag("json", "Output in JSON format").Short('j').Bool()
 	server   = app.Flag("server", "Default to https://fireblock.io").Short('s').Default("https://fireblock.io").String() // dev.fireblock.io
 
-	verifyCmd = app.Command("verify", "verify a file")
+	verifyCmd = app.Command("verify", "verify a file (Default)").Default()
 	projectID = verifyCmd.Flag("project-id", "Set project id").Short('p').Default("0x0").String()
 	userID    = verifyCmd.Flag("user-id", "Set user id").Short('u').Default("").String()
 	fverify   = verifyCmd.Arg("file", "File to verify.").Required().ExistingFile()
@@ -42,7 +42,7 @@ var (
 	verifyHashCmd = app.Command("verify-hash", "verify a sha256 like 0x004e...5c2")
 	vhProjectID   = verifyHashCmd.Flag("project-id", "Set project id").Short('p').Default("0x0").String()
 	vhUserID      = verifyHashCmd.Flag("user-id", "Set user id").Short('u').Default("").String()
-	vhHash        = verifyHashCmd.Arg("file", "File to verify.").Required().String()
+	vhHash        = verifyHashCmd.Arg("hash", "Hash to verify.").Required().String()
 
 	signCmd    = app.Command("sign", "sign a file")
 	signKey    = signCmd.Flag("key", "private key in base64url").Short('k').Default("").String()
@@ -50,6 +50,12 @@ var (
 	signFio    = signCmd.Flag("fio", "path to fio file").Short('f').ExistingFile()
 	passphrase = signCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
 	fsign      = signCmd.Arg("file", "File to sign.").Required().ExistingFilesOrDirs()
+
+	signHashCmd  = app.Command("sign-hash", "sign a sha256 like 0x004e...5c2")
+	shKey        = signHashCmd.Flag("key", "private key in base64url").Short('k').Default("").String()
+	shFio        = signHashCmd.Flag("fio", "path to fio file").Short('f').ExistingFile()
+	shPassphrase = signHashCmd.Flag("passphrase", "passphrase (for PGP private key)").Short('p').Default("").String()
+	shHash       = signHashCmd.Arg("hash", "Hash to verify.").Required().String()
 
 	versionCmd = app.Command("version", "version of fio (https://fireblock.io)")
 )
@@ -183,7 +189,9 @@ func signFunction() {
 	} else if len(data) == 1 {
 		// one certificat
 		for hash, metadata := range data {
-			signACertificate("", hash, keyuid, privkey, metadata)
+			m, _ := json.Marshal(metadata)
+			m2 := string(m)
+			signACertificate("", hash, keyuid, privkey, m2)
 			var res SignSuccess
 			res.Code = 0
 			res.Hash = hash
@@ -220,7 +228,9 @@ func signFunction() {
 			fname = fmt.Sprintf("batch_%d%d%d_%d:%d:%d", y, mon, d, h, m, s)
 		}
 		metadata := fireblocklib.Metadata{Kind: "b100", Filename: fname, Size: int64(len(batch)), Type: "application/json"}
-		signACertificate(batch, hash, keyuid, privkey, metadata)
+		m, _ := json.Marshal(metadata)
+		m2 := string(m)
+		signACertificate(batch, hash, keyuid, privkey, m2)
 		var res SignSuccess
 		res.Code = 0
 		res.Hash = hash
@@ -228,6 +238,36 @@ func signFunction() {
 		exitSuccess(res, fmt.Sprintf("File(s) certified: %d", len(filesCertified)))
 		return
 	}
+}
+
+func signHashFunction() {
+	// Read the private key (shFio or shKey)
+	var keyuid, privkey string
+	var err error
+	// check fio file
+	if (shFio == nil || *shFio == "") && (*shKey == "") {
+		exitMsgError(fireblocklib.NoFile, "Missing private key! add --fio filepath or --key privatekey")
+	} else if shFio != nil && len(*shFio) > 1 {
+		keypath := *shFio
+		// load fio file
+		_, keyuid, privkey, _, err = fireblocklib.LoadFioFile(keypath)
+		if err != nil {
+			exitMsgError(fireblocklib.InvalidFile, "Invalid fio file")
+		}
+	} else if shKey != nil && len(*shKey) > 1 {
+		keyuid, privkey, err = fireblocklib.LoadB64U(*shKey)
+	} else {
+		exitMsgError(fireblocklib.NoFile, "Missing private key! add --fio filepath or --key privatekey with correct values")
+	}
+	sha256 := *shHash
+	if !fireblocklib.IsSha256(sha256) {
+		exitMsgError(fireblocklib.InvalidHash, "Invalid Hash")
+	}
+	signACertificate("", sha256, keyuid, privkey, "")
+	var res SignSuccess
+	res.Code = 0
+	res.Hash = sha256
+	exitSuccess(res, fmt.Sprintf("hash certified: %s", sha256))
 }
 
 func verifyFunction() {
@@ -297,6 +337,8 @@ func main() {
 	switch cmd {
 	case signCmd.FullCommand():
 		signFunction()
+	case signHashCmd.FullCommand():
+		signHashFunction()
 	case verifyCmd.FullCommand():
 		verifyFunction()
 	case verifyHashCmd.FullCommand():

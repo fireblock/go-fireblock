@@ -34,7 +34,7 @@ type Metadata struct {
 	Kind     string `json:"kind,omitempty"`
 	Filename string `json:"filename,omitempty"`
 	Type     string `json:"type,omitempty"`
-	Size     int64  `json:"size"`
+	Size     int64  `json:"size,omitempty"`
 }
 
 // MetadataFile extract Metadata from file
