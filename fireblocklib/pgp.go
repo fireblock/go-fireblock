@@ -23,13 +23,14 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"strings"
 
 	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/clearsign"
+	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/openpgp/packet"
 )
 
-// PGPSign clearsign a message
+// PGPSign creates a detached signature of a message
 func PGPSign(message, privkey, passphrase string) (string, error) {
 	// load private key
 	entity, err := loadPrivateKey(privkey, passphrase)
@@ -37,36 +38,21 @@ func PGPSign(message, privkey, passphrase string) (string, error) {
 		return "", err
 	}
 	var buf bytes.Buffer
-	plaintext, err := clearsign.Encode(&buf, entity.PrivateKey, nil)
+	err = openpgp.ArmoredDetachSign(&buf, entity, strings.NewReader(message), nil)
 	if err != nil {
 		return "", NewFBKError("cannot create a signature", InvalidSignature)
 	}
-	plaintext.Write([]byte(message))
-	plaintext.Close()
 	return buf.String(), nil
 }
 
-// PGPVerify a clearsign message
+// PGPVerify verifies a detached signature of message
 func PGPVerify(signature, message, pubkey string) (bool, error) {
 	entity, err := loadPGPPublicKey(pubkey)
 	if err != nil {
 		return false, err
 	}
-	// load clearsigned message and extract signature
-	bck, remain := clearsign.Decode([]byte(signature))
-	if len(remain) != 0 {
-		msg := fmt.Sprintf("Not the signature attended: %s", signature)
-		return false, NewFBKError(msg, InvalidSignature)
-	}
 
-	if bck.ArmoredSignature == nil {
-		return false, NewFBKError("No signature found", InvalidSignature)
-	}
-
-	block := bck.ArmoredSignature
-	if block.Type != openpgp.SignatureType {
-		return false, NewFBKError("No armored part in signature", InvalidSignature)
-	}
+	block, err := armor.Decode(strings.NewReader(signature))
 
 	reader := packet.NewReader(block.Body)
 	pkt, err := reader.Next()

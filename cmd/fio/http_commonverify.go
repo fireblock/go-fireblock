@@ -76,7 +76,7 @@ func checkAResult(pkey, key KeyInfo, card *CardInfo, certificate CertificateInfo
 		} else {
 			card.Linkedin.Status = "none"
 		}
-		if pstates.Https.Status == "ok" {
+		if pstates.HTTPS.Status == "ok" {
 			card.HTTPS.Status = "ok"
 			card.HTTPS.Proof = pstates.Https.Proof
 			card.HTTPS.UID = pstates.Https.UID

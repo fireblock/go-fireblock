@@ -31,6 +31,7 @@ type ProviderData struct {
 	Proof    string `json:"proof"`
 }
 
+// ProviderInfo info struct
 type ProviderInfo struct {
 	UID    string
 	status string
@@ -232,19 +233,21 @@ func CheckCard(card, cardID string) (string, string, string, error) {
 	return useruid, keyuid, ktype, nil
 }
 
+// ProviderState state
 type ProviderState struct {
 	UID, Proof, Status string
 }
 
+// ProviderStates states
 type ProviderStates struct {
-	Twitter, Github, Linkedin, Https ProviderState
+	Twitter, Github, Linkedin, HTTPS ProviderState
 }
 
 func errorVC(msg string) (*ProviderStates, error) {
 	return nil, NewFBKError(msg, InvalidCard)
 }
 
-// status, provider states, error
+// VerifyCard status, provider states, error
 func VerifyCard(card, pkeyUID, pktype string) (pstates *ProviderStates, err error) {
 	// decode json
 	var providers []ProviderData
@@ -337,11 +340,11 @@ func VerifyCard(card, pkeyUID, pktype string) (pstates *ProviderStates, err erro
 		if !CheckHTTPS(httpsCE.Proof, httpsCE.UID, useruid, fingerprint) {
 			return errorVC(`Invalid website!`)
 		}
-		pstates.Https.Status = "ok"
-		pstates.Https.Proof = httpsCE.Proof
-		pstates.Https.UID = httpsCE.UID
+		pstates.HTTPS.Status = "ok"
+		pstates.HTTPS.Proof = httpsCE.Proof
+		pstates.HTTPS.UID = httpsCE.UID
 	} else {
-		pstates.Https.Status = "none"
+		pstates.HTTPS.Status = "none"
 	}
 	// check Linkedin
 	if linkedinCE := getCardElement("linkedin", providers); linkedinCE != nil {
