@@ -31,7 +31,7 @@ import (
 )
 
 // PGPSign creates a detached signature of a message
-func PGPSign(message, privkey, passphrase string) (string, error) {
+func PGPSign(privkey, message, passphrase string) (string, error) {
 	// load private key
 	entity, err := loadPrivateKey(privkey, passphrase)
 	if err != nil {
@@ -46,7 +46,7 @@ func PGPSign(message, privkey, passphrase string) (string, error) {
 }
 
 // PGPVerify verifies a detached signature of message
-func PGPVerify(signature, message, pubkey string) (bool, error) {
+func PGPVerify(pubkey, message, signature string) (bool, error) {
 	entity, err := loadPGPPublicKey(pubkey)
 	if err != nil {
 		return false, err

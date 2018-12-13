@@ -56,19 +56,19 @@ func shutdown() {}
 
 func TestDetachedSign(t *testing.T) {
 	msg := "un message a signer doit faire une longueur"
-	sig, err := PGPSign(msg, fireblockPrivKey, "fireblock")
+	sig, err := PGPSign(fireblockPrivKey, msg, "fireblock")
 	assert.Equal(t, err, nil, "no error when signing")
-	res, _ := PGPVerify(sig, msg, fireblockPubKey)
+	res, _ := PGPVerify(fireblockPubKey, msg, sig)
 	assert.Equal(t, res, true, "verify matched")
 }
 
 func TestDetachedSign2(t *testing.T) {
-	_, err := PGPSign("un message", "a bad key", "fireblock")
+	_, err := PGPSign("a bad key", "un message", "fireblock")
 	assert.NotNil(t, err, "bad private key")
 }
 
 func TestDetachedSign3(t *testing.T) {
-	res, _ := PGPVerify(fireblockSignature, fireblockMessage, fireblockPubKey)
+	res, _ := PGPVerify(fireblockPubKey, fireblockMessage, fireblockSignature)
 	assert.Equal(t, res, true, "verify matched")
 }
 

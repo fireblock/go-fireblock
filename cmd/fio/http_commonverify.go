@@ -78,8 +78,8 @@ func checkAResult(pkey, key KeyInfo, card *CardInfo, certificate CertificateInfo
 		}
 		if pstates.HTTPS.Status == "ok" {
 			card.HTTPS.Status = "ok"
-			card.HTTPS.Proof = pstates.Https.Proof
-			card.HTTPS.UID = pstates.Https.UID
+			card.HTTPS.Proof = pstates.HTTPS.Proof
+			card.HTTPS.UID = pstates.HTTPS.UID
 		} else {
 			card.HTTPS.Status = "none"
 		}

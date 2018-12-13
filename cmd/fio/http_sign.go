@@ -121,13 +121,13 @@ func signACertificate(batch, hash, keyuid, privkey string, metadata string) {
 	metadataSignature := ""
 	ktype := fireblocklib.B32Type(keyuid)
 	if ktype == "pgp" {
-		signature, err = fireblocklib.PGPSign(message, privkey, *passphrase)
+		signature, err = fireblocklib.PGPSign(privkey, message, *passphrase)
 		if err != nil {
 			se := SignError{fireblocklib.SignError, "PGP error: cannot sign message", batch, hash, ktype, keyuid}
 			exitJSONError(se, fireblocklib.InvalidEncoding, "PGP error: cannot sign message")
 		}
 		if metadata != "" {
-			metadataSignature, err = fireblocklib.PGPSign(messageSignature, privkey, *passphrase)
+			metadataSignature, err = fireblocklib.PGPSign(privkey, messageSignature, *passphrase)
 			if err != nil {
 				se := SignError{fireblocklib.SignError, "PGP error: cannot sign metadata", batch, hash, ktype, keyuid}
 				exitJSONError(se, fireblocklib.InvalidEncoding, "PGP error: cannot sign metadata")
